@@ -1,0 +1,11 @@
+import {
+  "wulisususu/agenttrace" @app,
+  "wulisususu/agenttrace/src/diagnosis" @diagnosis,
+  "wulisususu/agenttrace/src/report" @report,
+  "wulisususu/agenttrace/src/testlog" @testlog,
+  "moonbitlang/async/fs" @fs,
+}
+
+import {
+  "moonbitlang/async" @async,
+} for "test"
