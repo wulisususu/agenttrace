@@ -1,0 +1,9 @@
+import {
+  "wulisususu/agenttrace" @app,
+  "wulisususu/agenttrace/src/diagnosis" @diagnosis,
+  "moonbitlang/core/json" @json,
+}
+
+import {
+  "wulisususu/agenttrace/src/testlog" @testlog,
+} for "test"
