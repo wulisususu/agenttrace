@@ -1,50 +1,89 @@
 # AgentTrace 数据模型
 
-本文定义逻辑模型，不代表最终 MoonBit 类型名称已经冻结。
+## 1. 公共 Core 模型
 
-## 1. RepositorySnapshot
+真正稳定、面向外部消费者的模型位于 `core/`。
 
-描述仓库在采集时刻的状态。
-
-字段草案：
+### Evidence
 
 ```text
-path
+id
+kind
+message
+source
+```
+
+Evidence 表示一条已经结构化的事实。
+
+它不包含：
+
+- Git 专属字段；
+- 测试框架专属字段；
+- Node.js 专属字段；
+- Agent 专属字段。
+
+### Rule
+
+```text
+id
+category
+severity
+confidence
+required_evidence_kinds[]
+suggested_checks[]
+```
+
+Rule 是确定性规则声明。
+
+### Diagnosis
+
+```text
+category
+severity
+confidence
+rule_ids[]
+evidence[]
+suggested_checks[]
+```
+
+Diagnosis 直接携带命中的证据，保证可解释性。
+
+## 2. Adapter 模型
+
+以下模型属于参考适配器，不是 Core API。
+
+### RepositorySnapshot
+
+```text
+root
 branch
 head
 is_dirty
 changed_files[]
-worktree[]
+worktrees[]
 ```
 
-原则：Snapshot 是事实快照，不保存诊断结论。
-
-## 2. EnvironmentSnapshot
+### EnvironmentSnapshot
 
 ```text
-platform
+package_managers[]
 lockfiles[]
 dependency_markers[]
 config_files[]
-observations[]
 ```
 
-MVP 不采集或保存环境变量秘密值、token、cookies、SSH key 或带凭据的 remote URL。
-
-## 3. TestObservation
+### TestObservation
 
 ```text
 runner
 status
 failed_suites
 failed_tests
+assertion_failures
 error_signatures[]
-raw_source
 ```
 
-默认报告只输出结构化摘要，不回显整个原始测试日志。
-
-## 4. BuildObservation
+### BuildObservation
 
 ```text
 compiler
@@ -53,98 +92,57 @@ exit_code
 errors[]
 ```
 
-首版 TypeScript 编译错误元素保存：
+这些结构可以被替换。外部项目使用 AgentTrace Core 时不需要采用它们。
 
-```text
-file
-line
-column
-code
-message
-```
+## 3. 为什么分层
 
-BuildObservation 只保存编译事实；是否属于源码故障由 Diagnosis Engine 决定。报告层会对源码文件绝对路径执行与仓库路径相同的 Home 路径脱敏。
+如果把 RepositorySnapshot 或 Vitest 字段放进 Core：
 
-## 5. Evidence
+- 非 Git 工具无法自然复用；
+- 非 Node.js 生态被迫携带无关字段；
+- Core 会逐渐变成某个产品的内部模型。
 
-```text
-id
-kind
-message
-source
-weight
-metadata
-```
+所以公共层只保留“事实、规则、诊断”三个抽象。
 
-Evidence 应能独立解释“为什么它与诊断有关”。
+## 4. Reporter
 
-## 6. Diagnosis
+Reporter 可以消费 Core Diagnosis。
 
-```text
-category
-severity
-confidence
-rule_ids[]
-evidence_ids[]
-suggested_checks[]
-```
+完整 AgentTrace CLI 还会将：
 
-### category
+- RepositorySnapshot；
+- EnvironmentSnapshot；
+- BuildObservation；
+- TestObservation
 
-见 PROJECT_SCOPE 中的初始故障分类。
+组成聚合报告。
 
-### severity
+这属于上层应用 schema，不等同于 Core schema。
 
-建议：
+## 5. 敏感信息
 
-- `info`
-- `warning`
-- `error`
-- `blocking`
+Core 本身不访问本地环境，因此不会主动采集敏感信息。
 
-### confidence
+具体 collector / reporter 需要处理：
 
-- `low`
-- `medium`
-- `high`
+- Home 路径；
+- token；
+- cookie；
+- credentials；
+- 私有 URL。
 
-## 7. DiagnosticReport
+现有 Reporter 已对常见用户 Home 路径做最小化脱敏。
 
-聚合结构：
+## 6. API 稳定性
 
-```text
-schema_version
-tool_version
-repository?
-environment?
-build?
-tests?
-diagnoses[]
-summary
-```
+优先稳定：
 
-## 8. JSON 兼容
+- Evidence；
+- Rule；
+- Diagnosis；
+- evaluate_rule；
+- evaluate_rules。
 
-JSON 输出必须包含 `schema_version`。
+Adapter 数据结构允许更快演进。
 
-新增字段优先保持向后兼容；删除或改变字段语义时提高 schema version。
-
-## 9. 默认敏感信息处理
-
-脱敏发生在 **Reporter 边界**，而不是采集层。这样规则引擎仍能看到完整、真实的工程事实，同时默认对外输出不会直接暴露常见用户 Home 路径。
-
-MVP 当前保证：
-
-- Windows `C:\Users\<name>\...` 与 `C:/Users/<name>/...` 折叠为 `$HOME/...`；
-- Linux `/home/<name>/...` 折叠为 `$HOME/...`；
-- macOS `/Users/<name>/...` 折叠为 `$HOME/...`；
-- Repository root、Worktree path、TypeScript BuildError.file 在 JSON 报告中使用同一策略；
-- Text 聚合报告中的 Repository root 使用同一策略；
-- 原始测试日志和原始构建日志不会被默认报告回显；
-- EnvironmentSnapshot 不读取环境变量秘密值，RepositorySnapshot 不采集 remote URL。
-
-这不是通用 secret scanner。MVP 不声称能识别任意自由文本中的所有 token/密钥；后续如果增加原始日志输出或更自由的 metadata 字段，必须在进入 Reporter 前扩展专门的 secret redaction。
-
-## 10. 时间模型
-
-如果后续加入 Agent timeline，时间字段统一使用带时区的 ISO 8601 表示；MVP 不为了时间线需求提前复杂化核心模型。
+这一策略让外部消费者可以依赖 Core，而不必跟随 AgentTrace CLI 每次变化。

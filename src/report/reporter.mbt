@@ -1,5 +1,5 @@
 ///|
-fn evidence_to_json(evidence : @diagnosis.Evidence) -> Json {
+fn evidence_to_json(evidence : @core.Evidence) -> Json {
   {
     "id": evidence.id,
     "kind": evidence.kind,
@@ -9,7 +9,7 @@ fn evidence_to_json(evidence : @diagnosis.Evidence) -> Json {
 }
 
 ///|
-fn evidence_list_to_json(evidence : Array[@diagnosis.Evidence]) -> Json {
+fn evidence_list_to_json(evidence : Array[@core.Evidence]) -> Json {
   let items : Array[Json] = []
   for item in evidence {
     items.push(evidence_to_json(item))
@@ -18,7 +18,7 @@ fn evidence_list_to_json(evidence : Array[@diagnosis.Evidence]) -> Json {
 }
 
 ///|
-fn diagnosis_to_json(diagnosis : @diagnosis.Diagnosis) -> Json {
+fn diagnosis_to_json(diagnosis : @core.Diagnosis) -> Json {
   {
     "category": diagnosis.category,
     "severity": diagnosis.severity,
@@ -30,7 +30,9 @@ fn diagnosis_to_json(diagnosis : @diagnosis.Diagnosis) -> Json {
 }
 
 ///|
-pub fn render_json(diagnosis : @diagnosis.Diagnosis) -> String {
+/// Serialize one reusable diagnostic result. This renderer can be used by
+/// library consumers without invoking the AgentTrace CLI.
+pub fn render_json(diagnosis : @core.Diagnosis) -> String {
   let value : Json = {
     "schema_version": "0.1",
     "tool_version": @app.version(),
@@ -47,7 +49,7 @@ pub fn render_json(diagnosis : @diagnosis.Diagnosis) -> String {
 }
 
 ///|
-pub fn render_text(diagnosis : @diagnosis.Diagnosis) -> String {
+pub fn render_text(diagnosis : @core.Diagnosis) -> String {
   let mut output =
     "AgentTrace\n\nDiagnosis\n  Category: \{diagnosis.category}\n  Severity: \{diagnosis.severity}\n  Confidence: \{diagnosis.confidence}\n"
 

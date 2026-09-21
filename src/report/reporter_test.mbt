@@ -1,5 +1,5 @@
 ///|
-fn r001_diagnosis() -> @diagnosis.Diagnosis {
+fn r001_diagnosis() -> @core.Diagnosis {
   let log =
     #|Test Files 27 failed (27)
     #|Tests 155 failed (155)

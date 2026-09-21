@@ -4,7 +4,7 @@ pub(all) struct DiagnosticReport {
   environment : @environment.EnvironmentSnapshot
   build : @buildlog.BuildObservation?
   tests : @testlog.TestObservation?
-  diagnoses : Array[@diagnosis.Diagnosis]
+  diagnoses : Array[@core.Diagnosis]
 }
 
 ///|
@@ -84,7 +84,7 @@ fn tests_to_json(tests : @testlog.TestObservation) -> Json {
 }
 
 ///|
-fn diagnoses_to_json(diagnoses : Array[@diagnosis.Diagnosis]) -> Json {
+fn diagnoses_to_json(diagnoses : Array[@core.Diagnosis]) -> Json {
   let items : Array[Json] = []
   for diagnosis in diagnoses {
     items.push(diagnosis_to_json(diagnosis))

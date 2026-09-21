@@ -1,71 +1,101 @@
 # Engineering Decisions
 
-本文件记录项目早期关键决策，防止实现过程中反复改变基本方向。
-
 ## ADR-001：MoonBit 为主要实现语言
 
 **状态：Accepted**
 
-原因：
-
-- 项目参加 MoonBit 开源开发活动；
-- 诊断核心适合用强类型数据模型表达；
-- Native CLI 可以处理本地开发环境；
-- 核心纯逻辑未来可复用于其他 target。
-
-约束：不能只用 MoonBit 写薄壳，把主要逻辑放到其他语言。
+AgentTrace 的公共诊断模型、规则引擎和主要工程实现使用 MoonBit。
 
 ---
 
-## ADR-002：Native CLI 优先
+## ADR-002：Library First
 
 **状态：Accepted**
 
-首版首先解决本地仓库问题，因此需要：
+项目主体定义为可复用 MoonBit 基础库。
 
-- 文件系统访问；
-- Git 状态；
-- 日志文件；
-- 进程/命令边界。
-
-Web UI 延后。
-
----
-
-## ADR-003：确定性诊断优先于 LLM
-
-**状态：Accepted**
-
-LLM 输出存在随机性，且不能可靠证明根因。
-
-首版采用：
+公共入口：
 
 ```text
-observations -> evidence -> deterministic rules -> diagnosis
+wulisususu/agenttrace/core
 ```
 
-LLM 仅作为未来可选解释层。
+CLI、Git Collector 和 Web Visual Report 均为基础库消费者或参考实现，不再作为项目主体。
+
+理由：
+
+- 允许 MoonBit 生态中的其他工具直接复用；
+- 降低具体 AI Coding 场景耦合；
+- 让规则和数据模型可以独立测试；
+- 明确“基础能力”与“落地应用”的边界。
 
 ---
 
-## ADR-004：默认只读
+## ADR-003：Core 不做 IO
 
 **状态：Accepted**
 
-AgentTrace 首版不会：
+Core 不访问：
 
-- git reset；
-- git clean；
-- 删除 node_modules；
-- 修改 lockfile；
-- 自动安装依赖；
-- 修改源码。
+- 文件系统；
+- Git；
+- 网络；
+- 环境变量；
+- LLM。
 
-理由：诊断工具首先要做到可信和安全。
+所有外部事实先由 adapter 转换成 Evidence，再进入 Core。
 
 ---
 
-## ADR-005：不使用伪精确概率
+## ADR-004：确定性诊断优先
+
+**状态：Accepted**
+
+基础流程：
+
+```text
+evidence -> deterministic rule -> diagnosis
+```
+
+LLM 如未来加入，只能作为可选解释层。
+
+---
+
+## ADR-005：证据与结论分离
+
+**状态：Accepted**
+
+Evidence 是事实，Diagnosis 是规则评估后的结论。
+
+每个命中的 Diagnosis 必须保留相关 Evidence 和 rule id。
+
+---
+
+## ADR-006：公共 API 不绑定 AI Coding
+
+**状态：Accepted**
+
+Core 类型和函数不得出现：
+
+- Codex 专属字段；
+- Claude Code 专属字段；
+- Git 专属字段；
+- Vitest 专属字段；
+- Node.js 专属字段。
+
+这些内容属于 adapter 或内置规则层。
+
+---
+
+## ADR-007：Native CLI 作为参考应用
+
+**状态：Accepted**
+
+CLI 继续保留，因为它能证明基础库可用于真实本地工程诊断，但 CLI 不定义 Core 的能力边界。
+
+---
+
+## ADR-008：不使用伪精确概率
 
 **状态：Accepted**
 
@@ -75,61 +105,23 @@ AgentTrace 首版不会：
 - medium；
 - high。
 
-在没有标注数据和概率校准前，不显示“91% 置信度”等数值。
+没有标注数据和校准前不展示伪精确百分比。
 
 ---
 
-## ADR-006：证据与结论分离
+## ADR-009：新 MoonBit 配置格式
 
 **状态：Accepted**
 
-Collector 不直接输出“这是环境错误”，只输出事实。
-
-Diagnosis Engine 负责把多个事实组合成结论。
-
-这样：
-
-- 更容易测试；
-- 更容易新增规则；
-- 更容易解释错误诊断。
-
----
-
-## ADR-007：新 MoonBit 配置格式
-
-**状态：Accepted**
-
-新项目使用 `moon.mod` 与 `moon.pkg`，不以旧的 `moon.mod.json` / `moon.pkg.json` 作为默认模板。
-
----
-
-## ADR-008：Git 通过无 Shell 子进程采集
-
-**状态：Accepted**
-
-MVP 使用 Git CLI 自身提供的机器可读接口采集仓库事实，而不是直接解析 `.git` 内部文件：
-
-- `git status --porcelain=v2 -z`；
-- `git worktree list --porcelain`；
-- `git rev-parse`；
-- `git branch --show-current`。
-
-实现使用 `moonbitlang/async/process` 直接执行 `git`，命令与参数分离，不通过 Bash、PowerShell 或 `cmd /c` 拼接用户输入。
-
-原因：
-
-- Git 自己处理主仓库、linked worktree 和平台差异；
-- porcelain 接口比面向人的本地化文本稳定；
-- 参数数组避免路径空格、中文和 shell 注入问题；
-- Collector 仍然保持只读，不执行 reset/clean/checkout 等修改命令。
-
-`moonbitlang/async` 在 MVP 中固定版本，升级时必须经过 Linux/Windows CI 验证。
+项目使用 `moon.mod` 与 `moon.pkg`。
 
 ---
 
 ## 后续 ADR 候选
 
-待真实实现验证后决定：
-
-- parser plugin 机制；
-- Windows 本地代码页兼容策略。
+- composable condition 表达方式；
+- rule priority；
+- Evidence metadata 结构；
+- adapter interface；
+- report schema versioning；
+- WASM 目标的公共 API 稳定性。
