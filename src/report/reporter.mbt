@@ -18,6 +18,18 @@ fn evidence_list_to_json(evidence : Array[@diagnosis.Evidence]) -> Json {
 }
 
 ///|
+fn diagnosis_to_json(diagnosis : @diagnosis.Diagnosis) -> Json {
+  {
+    "category": diagnosis.category,
+    "severity": diagnosis.severity,
+    "confidence": diagnosis.confidence,
+    "rule_ids": @json.to_json(diagnosis.rule_ids),
+    "evidence": evidence_list_to_json(diagnosis.evidence),
+    "suggested_checks": @json.to_json(diagnosis.suggested_checks),
+  }
+}
+
+///|
 pub fn render_json(diagnosis : @diagnosis.Diagnosis) -> String {
   let value : Json = {
     "schema_version": "0.1",
@@ -29,16 +41,7 @@ pub fn render_json(diagnosis : @diagnosis.Diagnosis) -> String {
         "problem_detected"
       },
     },
-    "diagnoses": [
-      {
-        "category": diagnosis.category,
-        "severity": diagnosis.severity,
-        "confidence": diagnosis.confidence,
-        "rule_ids": @json.to_json(diagnosis.rule_ids),
-        "evidence": evidence_list_to_json(diagnosis.evidence),
-        "suggested_checks": @json.to_json(diagnosis.suggested_checks),
-      },
-    ],
+    "diagnoses": [diagnosis_to_json(diagnosis)],
   }
   value.stringify()
 }

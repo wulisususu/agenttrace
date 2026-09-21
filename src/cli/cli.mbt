@@ -3,6 +3,7 @@ pub(all) struct CliRequest {
   command : String
   input : String
   format : String
+  log : String
   error : String
 }
 
@@ -19,6 +20,7 @@ pub fn usage() -> String {
     #|AgentTrace
     #|
     #|Usage:
+    #|  agenttrace inspect <path> [--format text|json] [--log <file>]
     #|  agenttrace analyze-log <file> [--format text|json]
     #|  agenttrace version
     #|  agenttrace --help
@@ -34,28 +36,90 @@ pub fn usage() -> String {
 
 ///|
 fn invalid(message : String) -> CliRequest {
-  { command: "invalid", input: "", format: "text", error: message }
+  {
+    command: "invalid",
+    input: "",
+    format: "text",
+    log: "",
+    error: message,
+  }
+}
+
+///|
+fn parse_inspect(argv : ArrayView[String]) -> CliRequest {
+  if argv.length() < 2 {
+    return invalid("inspect requires a repository path")
+  }
+
+  let input = argv[1]
+  let mut format = "text"
+  let mut log = ""
+  let mut index = 2
+
+  while index < argv.length() {
+    if argv[index] == "--format" {
+      if index + 1 >= argv.length() {
+        return invalid("--format requires text or json")
+      }
+      let value = argv[index + 1]
+      if value != "text" && value != "json" {
+        return invalid("--format must be text or json")
+      }
+      format = value
+      index = index + 2
+    } else if argv[index] == "--log" {
+      if index + 1 >= argv.length() {
+        return invalid("--log requires a file path")
+      }
+      log = argv[index + 1]
+      index = index + 2
+    } else {
+      return invalid("unsupported inspect argument: \{argv[index]}")
+    }
+  }
+
+  { command: "inspect", input, format, log, error: "" }
 }
 
 ///|
 pub fn parse_cli(argv : ArrayView[String]) -> CliRequest {
   if argv.length() == 0 {
-    return { command: "help", input: "", format: "text", error: "" }
+    return {
+      command: "help",
+      input: "",
+      format: "text",
+      log: "",
+      error: "",
+    }
   }
 
   let command = argv[0]
   if command == "--help" || command == "-h" || command == "help" {
     if argv.length() == 1 {
-      { command: "help", input: "", format: "text", error: "" }
+      {
+        command: "help",
+        input: "",
+        format: "text",
+        log: "",
+        error: "",
+      }
     } else {
       invalid("help does not accept positional arguments")
     }
   } else if command == "version" {
     if argv.length() == 1 {
-      { command: "version", input: "", format: "text", error: "" }
+      {
+        command: "version",
+        input: "",
+        format: "text",
+        log: "",
+        error: "",
+      }
     } else {
       invalid("version does not accept additional arguments")
     }
+  } else if command == "inspect" {
+    parse_inspect(argv)
   } else if command == "analyze-log" {
     if argv.length() < 2 {
       return invalid("analyze-log requires a log file")
@@ -63,13 +127,13 @@ pub fn parse_cli(argv : ArrayView[String]) -> CliRequest {
 
     let input = argv[1]
     if argv.length() == 2 {
-      return { command, input, format: "text", error: "" }
+      return { command, input, format: "text", log: "", error: "" }
     }
 
     if argv.length() == 4 && argv[2] == "--format" {
       let format = argv[3]
       if format == "text" || format == "json" {
-        { command, input, format, error: "" }
+        { command, input, format, log: "", error: "" }
       } else {
         invalid("--format must be text or json")
       }
@@ -117,6 +181,68 @@ async fn analyze_log(request : CliRequest) -> CliResult {
 }
 
 ///|
+async fn inspect(request : CliRequest) -> CliResult {
+  let repository = @git.collect_repository(request.input) catch {
+    _ =>
+      return {
+        stdout: "",
+        stderr: "AgentTrace: unable to inspect Git repository\n",
+        exit_code: 3,
+      }
+  }
+  let environment = @environment.collect_environment(request.input) catch {
+    _ =>
+      return {
+        stdout: "",
+        stderr: "AgentTrace: unable to inspect project environment\n",
+        exit_code: 3,
+      }
+  }
+
+  let diagnoses : Array[@diagnosis.Diagnosis] = []
+  let package_manager = @diagnosis.diagnose_r005(environment)
+  if package_manager.category != "unknown" {
+    diagnoses.push(package_manager)
+  }
+
+  let mut tests : @testlog.TestObservation? = None
+  if request.log != "" {
+    let data = @fs.read_file(request.log) catch {
+      _ =>
+        return {
+          stdout: "",
+          stderr: "AgentTrace: unable to read input log\n",
+          exit_code: 3,
+        }
+    }
+    let observation = @testlog.parse_vitest(data.text())
+    tests = Some(observation)
+    let assertion = @diagnosis.diagnose_r003(observation)
+    if assertion.category != "unknown" {
+      diagnoses.push(assertion)
+    }
+  }
+
+  let report : @report.DiagnosticReport = {
+    repository,
+    environment,
+    tests,
+    diagnoses,
+  }
+  let output = if request.format == "json" {
+    @report.render_report_json(report)
+  } else {
+    @report.render_report_text(report)
+  }
+
+  {
+    stdout: output + "\n",
+    stderr: "",
+    exit_code: if diagnoses.length() == 0 { 0 } else { 1 },
+  }
+}
+
+///|
 pub async fn run(argv : ArrayView[String]) -> CliResult {
   let request = parse_cli(argv)
 
@@ -132,6 +258,8 @@ pub async fn run(argv : ArrayView[String]) -> CliResult {
     { stdout: usage() + "\n", stderr: "", exit_code: 0 }
   } else if request.command == "version" {
     { stdout: @app.banner() + "\n", stderr: "", exit_code: 0 }
+  } else if request.command == "inspect" {
+    inspect(request)
   } else if request.command == "analyze-log" {
     analyze_log(request)
   } else {

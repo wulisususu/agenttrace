@@ -14,6 +14,24 @@ test "parse analyze-log with Windows path and JSON format" {
 }
 
 ///|
+test "parse inspect with Windows path log and JSON format" {
+  let request = @cli.parse_cli([
+    "inspect",
+    "C:\\Users\\User Name\\project",
+    "--log",
+    "C:\\logs\\vitest.txt",
+    "--format",
+    "json",
+  ])
+
+  assert_eq(request.command, "inspect")
+  assert_eq(request.input, "C:\\Users\\User Name\\project")
+  assert_eq(request.log, "C:\\logs\\vitest.txt")
+  assert_eq(request.format, "json")
+  assert_eq(request.error, "")
+}
+
+///|
 test "reject invalid output format" {
   let request = @cli.parse_cli([
     "analyze-log",
@@ -72,4 +90,45 @@ async test "analyze-log returns input error for missing file" {
   assert_eq(result.exit_code, 3)
   assert_eq(result.stdout, "")
   assert_true(result.stderr.contains("unable to read input log"))
+}
+
+///|
+async test "inspect current repository as JSON" {
+  @async.pause()
+  let result = @cli.run(["inspect", ".", "--format", "json"])
+
+  assert_eq(result.exit_code, 0)
+  assert_eq(result.stderr, "")
+  assert_true(result.stdout.contains("\"repository\":"))
+  assert_true(result.stdout.contains("\"environment\":"))
+  assert_true(result.stdout.contains("\"diagnoses\":[]"))
+}
+
+///|
+async test "inspect can include test observations and diagnoses" {
+  @async.pause()
+  let result = @cli.run([
+    "inspect",
+    ".",
+    "--log",
+    "fixtures/logs/vitest-assertion-failure.txt",
+    "--format",
+    "json",
+  ])
+
+  assert_eq(result.exit_code, 1)
+  assert_true(result.stdout.contains("\"tests\":"))
+  assert_true(result.stdout.contains("\"category\":\"test_assertion_failure\""))
+}
+
+///|
+async test "inspect returns input error outside a Git repository" {
+  @async.pause()
+  let result = @cli.run([
+    "inspect",
+    "fixtures/environment/yarn-pnp",
+  ])
+
+  assert_eq(result.exit_code, 3)
+  assert_true(result.stderr.contains("unable to inspect Git repository"))
 }
