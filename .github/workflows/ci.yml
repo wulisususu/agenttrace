@@ -38,9 +38,17 @@ jobs:
       - name: Smoke test CLI
         shell: bash
         run: |
-          output="$(moon run cmd/main)"
+          output="$(moon run cmd/main version)"
           printf '%s\n' "$output"
           test "$output" = "AgentTrace 0.1.0-dev"
+
+          set +e
+          diagnosis="$(moon run cmd/main analyze-log fixtures/logs/vitest-assertion-failure.txt --format json)"
+          code=$?
+          set -e
+          printf '%s\n' "$diagnosis"
+          test "$code" -eq 1
+          printf '%s' "$diagnosis" | grep -q '"category":"test_assertion_failure"'
 
   windows:
     runs-on: windows-latest
@@ -73,8 +81,21 @@ jobs:
       - name: Smoke test CLI
         shell: pwsh
         run: |
-          $output = (moon run cmd/main | Out-String).Trim()
+          $output = (moon run cmd/main version | Out-String).Trim()
           Write-Output $output
+          if ($LASTEXITCODE -ne 0) {
+            throw "version returned exit code $LASTEXITCODE"
+          }
           if ($output -ne "AgentTrace 0.1.0-dev") {
             throw "Unexpected CLI output: $output"
+          }
+
+          $diagnosis = (moon run cmd/main analyze-log fixtures/logs/vitest-assertion-failure.txt --format json | Out-String).Trim()
+          $code = $LASTEXITCODE
+          Write-Output $diagnosis
+          if ($code -ne 1) {
+            throw "analyze-log returned exit code $code instead of 1"
+          }
+          if ($diagnosis -notmatch '"category":"test_assertion_failure"') {
+            throw "analyze-log JSON did not contain the expected diagnosis"
           }
