@@ -183,6 +183,7 @@ MoonBit 官方当前推荐新项目使用 `moon.mod` 和 `moon.pkg`，CLI 项目
 - [测试计划](docs/TEST_PLAN.md)
 - [开发指南](docs/DEVELOPMENT.md)
 - [路线图](docs/ROADMAP.md)
+- [Visual Report 规范](docs/VISUAL_REPORT.md)
 - [贡献指南](CONTRIBUTING.md)
 
 ## 许可证
