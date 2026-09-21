@@ -170,6 +170,7 @@ agenttrace inspect . --format json
 agenttrace inspect . --log ./test-output.txt --format json
 agenttrace inspect . --log ./test-output.txt --build-exit-code 0 --format json
 agenttrace inspect . --build-log ./tsc-output.txt --build-exit-code 2 --format json
+agenttrace inspect . --expected-branch main --require-clean --format json
 agenttrace analyze-log ./test-output.txt
 agenttrace analyze-log ./test-output.txt --format json
 ```
@@ -206,7 +207,7 @@ moon run cmd/main analyze-log fixtures/logs/vitest-missing-matcher.txt
 
 由于缺少 compile-pass 事实，AgentTrace 会保持 `unknown`，不会为了得出环境结论而补造证据。
 
-完整的正常、编译故障和环境伪装案例见 [Demo 文档](docs/DEMO.md)。
+完整的正常、编译故障、环境伪装和显式 Worktree/分支预期案例见 [Demo 文档](docs/DEMO.md)。
 
 ## Visual Report（首个切片）
 

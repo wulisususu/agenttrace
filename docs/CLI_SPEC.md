@@ -31,6 +31,7 @@ agenttrace inspect . --format json
 agenttrace inspect . --log ./test-output.txt --format json
 agenttrace inspect . --log ./test-output.txt --build-exit-code 0 --format json
 agenttrace inspect . --build-log ./tsc-output.txt --build-exit-code 2 --format json
+agenttrace inspect . --expected-branch main --require-clean --format json
 ```
 
 当前选项：
@@ -39,13 +40,16 @@ agenttrace inspect . --build-log ./tsc-output.txt --build-exit-code 2 --format j
 - `--log <path>`：已有 Vitest 日志
 - `--build-exit-code <n>`：显式提供非负编译退出码
 - `--build-log <path>`：可选 TypeScript/tsc 日志；使用时必须同时给出 `--build-exit-code`
+- `--expected-branch <name>`：显式声明当前仓库应该位于哪个分支；不提供时不对分支做猜测
+- `--require-clean`：显式要求工作区必须干净；不提供时普通 dirty 开发状态不会被视为故障
 
 设计约束：
 
 - AgentTrace 不自动运行 build/test；
 - `--build-exit-code 0` 是用户显式提供的 compile-pass 事实，可与测试证据组合触发 R001；
 - 非零 build exit code 只有在 build log 含源码定位错误时才触发 R002；
-- 只有 build log、没有 exit code 时返回参数错误，不从日志猜测编译状态。
+- 只有 build log、没有 exit code 时返回参数错误，不从日志猜测编译状态；
+- R004 只在用户显式提供 `--expected-branch` 或 `--require-clean` 时运行约束判断；默认 inspect 不把普通开发分支/dirty 状态自动判错。
 
 后续可评估：
 
@@ -130,7 +134,8 @@ summary
 - Native build；
 - CLI version/analyze-log/inspect smoke；
 - R001 build-pass + repeated matcher 端到端场景；
-- R002 tsc 源码编译错误场景。
+- R002 tsc 源码编译错误场景；
+- R004 显式 expected-branch mismatch 端到端场景。
 
 Git 调用使用可执行文件 + 参数数组，不依赖 Bash、PowerShell 或 `cmd /c` 拼接用户路径。
 
