@@ -1,0 +1,13 @@
+ RUN  v3.2.4 D:/repo
+
+ FAIL  src/components/a.test.tsx
+Error: Invalid Chai property: toBeInTheDocument
+
+ FAIL  src/components/b.test.tsx
+Error: Invalid Chai property: toBeInTheDocument
+
+ FAIL  src/components/c.test.tsx
+Error: Invalid Chai property: toBeInTheDocument
+
+Test Files 27 failed (27)
+Tests 155 failed (155)
