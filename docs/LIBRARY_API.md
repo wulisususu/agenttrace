@@ -62,6 +62,20 @@ condition_matches(condition, evidence)
 condition_evidence(condition, evidence)
 ```
 
+### ConditionReport
+
+```moonbit
+pub(all) struct ConditionReport {
+  matched : Bool
+  empty_condition : Bool
+  missing_all : Array[String]
+  matched_any : Array[String]
+  blocked_by : Array[String]
+}
+```
+
+`inspect_condition` 不只返回 true/false，还能解释规则为什么没有满足。
+
 ## PolicyRule
 
 ```moonbit
@@ -96,6 +110,15 @@ evaluate_policy_rule(rule, evidence)
 ```text
 Diagnosis?
 ```
+
+### 可解释评估
+
+```moonbit
+inspect_policy_rule(rule, evidence)
+inspect_policy_rules(rules, evidence)
+```
+
+返回的 `RuleEvaluation` 同时包含 ConditionReport 与可选 Diagnosis，因此未命中的规则也能被解释。
 
 ### 多规则
 
@@ -170,7 +193,9 @@ validate_policy_rules(rules)
 - 非法 confidence；
 - 空 Condition；
 - 空 evidence kind；
-- duplicate rule id。
+- duplicate rule id；
+- all_of / none_of 自相矛盾；
+- any_of 的所有候选都被 none_of 禁止。
 
 设计上采用“返回问题列表”而不是抛异常，方便调用方在配置加载阶段一次显示所有错误。
 
