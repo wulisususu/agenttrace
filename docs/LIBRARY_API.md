@@ -1,18 +1,20 @@
 # AgentTrace Core 公共 API
 
-AgentTrace 的项目主体是 **MoonBit 结构化诊断基础库**。CLI、Git/Worktree 扫描和 Visual Report 是建立在该基础库之上的参考应用。
+AgentTrace Core 是一个纯 MoonBit 的结构化诊断规则基础库。它只负责：
 
-## 1. 导入
+```text
+Evidence[] + PolicyRule[] -> Diagnosis[]
+```
 
-外部 MoonBit 项目可以直接导入：
+它不采集文件、不执行命令、不调用网络，也不依赖具体开发工具。
+
+公共包：
 
 ```text
 wulisususu/agenttrace/core
 ```
 
-`core` 包不依赖 AgentTrace CLI、Git、Vitest、TypeScript 或 Web 页面。
-
-## 2. Evidence
+## Evidence
 
 ```moonbit
 pub(all) struct Evidence {
@@ -23,97 +25,97 @@ pub(all) struct Evidence {
 }
 ```
 
-Evidence 表示已经被采集或解析出来的结构化事实。它不包含“根因”判断。
+Evidence 表示已经由调用方确认的结构化事实。
 
-例如：
+Core 只关心 `kind` 如何参与规则判断，同时保留 `id/message/source` 供诊断解释使用。
+
+查询 API：
 
 ```moonbit
-let evidence : Array[@core.Evidence] = [
-  {
-    id: "E1",
-    kind: "timeout",
-    message: "request timed out",
-    source: "http",
-  },
-  {
-    id: "E2",
-    kind: "retry_exhausted",
-    message: "retry budget exhausted",
-    source: "runtime",
-  },
-]
+evidence_has_kind(evidence, kind)
+evidence_count_kind(evidence, kind)
+evidence_by_kind(evidence, kind)
 ```
 
-## 3. Rule
+## Condition
 
 ```moonbit
-pub(all) struct Rule {
+pub(all) struct Condition {
+  all_of : Array[String]
+  any_of : Array[String]
+  none_of : Array[String]
+}
+```
+
+语义：
+
+- `all_of`：每一种 kind 都必须存在；
+- `any_of`：非空时，至少一种 kind 必须存在；
+- `none_of`：这些 kind 必须全部不存在；
+- 全空 Condition 永远不匹配，避免误配置成全局 catch-all。
+
+核心 API：
+
+```moonbit
+condition_is_empty(condition)
+condition_matches(condition, evidence)
+condition_evidence(condition, evidence)
+```
+
+## PolicyRule
+
+```moonbit
+pub(all) struct PolicyRule {
   id : String
   category : String
   severity : String
   confidence : String
-  required_evidence_kinds : Array[String]
+  priority : Int
+  condition : Condition
   suggested_checks : Array[String]
 }
 ```
 
-当前基础引擎实现一个确定性的 **all-of evidence rule**：只有所需 evidence kind 全部存在时，规则才命中。
+与首版 `Rule` 相比，PolicyRule 支持：
 
-这是一层通用能力，不限定故障领域。
+- all / any / none 条件；
+- priority；
+- 静态规则校验；
+- 最高优先级选择。
 
-可以用于：
+## 规则评估
 
-- CI / 构建诊断；
-- 配置检查；
-- 服务健康判断；
-- 网络故障归因；
-- 测试结果分析；
-- Agent 执行状态分析；
-- 其他需要“结构化事实 → 可解释结论”的工具。
-
-## 4. evaluate_rule
+### 单规则
 
 ```moonbit
-pub fn evaluate_rule(
-  rule : Rule,
-  evidence : Array[Evidence],
-) -> Diagnosis?
+evaluate_policy_rule(rule, evidence)
 ```
 
-示例：
+返回：
+
+```text
+Diagnosis?
+```
+
+### 多规则
 
 ```moonbit
-let rule : @core.Rule = {
-  id: "SERVICE001",
-  category: "service_unavailable",
-  severity: "error",
-  confidence: "high",
-  required_evidence_kinds: ["timeout", "retry_exhausted"],
-  suggested_checks: ["verify upstream service availability"],
-}
-
-match @core.evaluate_rule(rule, evidence) {
-  Some(diagnosis) => ...
-  None => ...
-}
+evaluate_policy_rules(rules, evidence)
 ```
 
-完整可编译示例位于：
+返回全部命中规则，保持调用方传入顺序。
 
-`examples/custom_rules/`
-
-## 5. evaluate_rules
+### 最高优先级
 
 ```moonbit
-pub fn evaluate_rules(
-  rules : Array[Rule],
-  evidence : Array[Evidence],
-) -> Array[Diagnosis]
+evaluate_highest_priority(rules, evidence)
 ```
 
-允许上层工具维护自己的规则集，并一次评估多个独立规则。
+返回 priority 最大的命中规则。
 
-## 6. Diagnosis
+priority 相同时保留输入顺序，保证结果稳定。
+
+## Diagnosis
 
 ```moonbit
 pub(all) struct Diagnosis {
@@ -126,54 +128,143 @@ pub(all) struct Diagnosis {
 }
 ```
 
-Diagnosis 保留：
+Diagnosis 不只是结论字符串。
 
-- 结论类别；
-- 严重级别；
-- 置信级别；
-- 命中的规则；
-- 参与判断的 Evidence；
-- 后续验证建议。
+它会保留：
 
-因此消费者不仅得到“结果”，还能知道该结果由什么证据产生。
+- 产生结论的 rule id；
+- 实际参与判断的 Evidence；
+- severity；
+- confidence；
+- 后续建议。
 
-## 7. AgentTrace 自带适配器
+因此调用方可以自行：
 
-仓库当前同时提供若干建立在 Core 之上的参考实现：
+- 渲染 CLI；
+- 输出 JSON；
+- 写入 CI；
+- 生成 Web UI；
+- 保存为审计记录。
 
-- `src/testlog`：Vitest 日志解析；
-- `src/buildlog`：TypeScript 编译日志解析；
-- `src/git`：Git/Worktree 状态采集；
-- `src/environment`：Node.js 项目环境信号；
-- `src/diagnosis`：R001–R005 内置工程诊断规则；
-- `src/report`：Text / JSON Reporter；
-- `src/cli`：完整 CLI 示例应用。
+## Rule Validation
 
-这些模块用于证明基础模型能够落地到真实工程诊断场景，但不是 Core 的前置依赖。
+```moonbit
+pub(all) struct ValidationIssue {
+  field : String
+  message : String
+}
+```
 
-## 8. 设计边界
+API：
 
-Core 当前刻意保持简单：
+```moonbit
+validate_policy_rule(rule)
+validate_policy_rules(rules)
+```
 
-- 不执行系统命令；
-- 不读取文件；
-- 不依赖网络；
-- 不调用 LLM；
-- 不限定编程语言；
-- 不自动修复。
+当前校验：
 
-外部项目可以只引入 Core，并自行实现采集器、领域规则和展示层。
+- 空 rule id；
+- 空 category；
+- 非法 severity；
+- 非法 confidence；
+- 空 Condition；
+- 空 evidence kind；
+- duplicate rule id。
 
-## 9. 后续基础库方向
+设计上采用“返回问题列表”而不是抛异常，方便调用方在配置加载阶段一次显示所有错误。
 
-计划继续扩充的仍然是可复用能力：
+## 完整示例
 
-- error signature / normalization；
-- composable conditions；
-- rule priority；
-- evidence metadata；
-- stable report schema；
-- adapter interface；
-- WASM 可复用核心。
+```moonbit
+let evidence : Array[@core.Evidence] = [
+  {
+    id: "E1",
+    kind: "latency_high",
+    message: "p95 latency exceeded threshold",
+    source: "metrics",
+  },
+  {
+    id: "E2",
+    kind: "error_rate_high",
+    message: "error rate exceeded threshold",
+    source: "metrics",
+  },
+]
 
-新增能力应优先考虑是否能被 AgentTrace 之外的 MoonBit 项目独立使用。
+let rule : @core.PolicyRule = {
+  id: "SLO001",
+  category: "service_degraded",
+  severity: "warning",
+  confidence: "high",
+  priority: 50,
+  condition: {
+    all_of: ["latency_high", "error_rate_high"],
+    any_of: [],
+    none_of: ["planned_load_test"],
+  },
+  suggested_checks: ["inspect recent deployment"],
+}
+
+let issues = @core.validate_policy_rule(rule)
+
+if issues.length() == 0 {
+  match @core.evaluate_policy_rule(rule, evidence) {
+    Some(diagnosis) => {
+      // diagnosis.category == "service_degraded"
+      // diagnosis.evidence.length() == 2
+    }
+    None => ()
+  }
+}
+```
+
+## 兼容 API
+
+首版简单规则继续保留：
+
+```moonbit
+Rule
+evaluate_rule
+evaluate_rules
+```
+
+它等价于只有 `all_of` 的轻量场景。
+
+这使已有消费者不需要因为 PolicyRule 的加入立即迁移。
+
+## 示例与契约测试
+
+仓库中有三种独立验证方式：
+
+```text
+examples/custom_rules/
+examples/config_guard/
+tests/core_contract/
+```
+
+它们都只导入：
+
+```text
+wulisususu/agenttrace/core
+```
+
+其中：
+
+- `custom_rules`：服务健康策略；
+- `config_guard`：配置检查策略；
+- `core_contract`：从外部 package 视角验证公共 API。
+
+## Core 的设计边界
+
+Core 保持纯逻辑层，不负责：
+
+- IO；
+- 日志格式；
+- Git；
+- 网络；
+- 命令执行；
+- 自动修复；
+- 展示层。
+
+这样同一套规则基础能力可以被不同 MoonBit 工具复用，而不会被某个具体产品架构绑死。
