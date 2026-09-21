@@ -14,12 +14,16 @@ test "parse analyze-log with Windows path and JSON format" {
 }
 
 ///|
-test "parse inspect with Windows path log and JSON format" {
+test "parse inspect with build and test context" {
   let request = @cli.parse_cli([
     "inspect",
     "C:\\Users\\User Name\\project",
     "--log",
     "C:\\logs\\vitest.txt",
+    "--build-log",
+    "C:\\logs\\tsc.txt",
+    "--build-exit-code",
+    "2",
     "--format",
     "json",
   ])
@@ -27,8 +31,34 @@ test "parse inspect with Windows path log and JSON format" {
   assert_eq(request.command, "inspect")
   assert_eq(request.input, "C:\\Users\\User Name\\project")
   assert_eq(request.log, "C:\\logs\\vitest.txt")
+  assert_eq(request.build_log, "C:\\logs\\tsc.txt")
+  assert_eq(request.build_exit_code, 2)
   assert_eq(request.format, "json")
   assert_eq(request.error, "")
+}
+
+///|
+test "reject build log without explicit exit code" {
+  let request = @cli.parse_cli([
+    "inspect",
+    ".",
+    "--build-log",
+    "build.txt",
+  ])
+
+  assert_true(request.error.contains("--build-log requires --build-exit-code"))
+}
+
+///|
+test "reject invalid build exit code" {
+  let request = @cli.parse_cli([
+    "inspect",
+    ".",
+    "--build-exit-code",
+    "failed",
+  ])
+
+  assert_true(request.error.contains("non-negative integer"))
 }
 
 ///|
@@ -101,11 +131,52 @@ async test "inspect current repository as JSON" {
   assert_eq(result.stderr, "")
   assert_true(result.stdout.contains("\"repository\":"))
   assert_true(result.stdout.contains("\"environment\":"))
+  assert_true(result.stdout.contains("\"build\":null"))
   assert_true(result.stdout.contains("\"diagnoses\":[]"))
 }
 
 ///|
-async test "inspect can include test observations and diagnoses" {
+async test "inspect correlates compile pass with repeated matcher failures" {
+  @async.pause()
+  let result = @cli.run([
+    "inspect",
+    ".",
+    "--log",
+    "fixtures/logs/vitest-missing-matcher.txt",
+    "--build-exit-code",
+    "0",
+    "--format",
+    "json",
+  ])
+
+  assert_eq(result.exit_code, 1)
+  assert_true(result.stdout.contains("\"build\":{\"compiler\":\"tsc\""))
+  assert_true(result.stdout.contains("\"category\":\"dependency_environment_error\""))
+  assert_true(result.stdout.contains("\"rule_ids\":[\"R001\"]"))
+}
+
+///|
+async test "inspect diagnoses source-located TypeScript compile errors" {
+  @async.pause()
+  let result = @cli.run([
+    "inspect",
+    ".",
+    "--build-log",
+    "fixtures/logs/tsc-type-error.txt",
+    "--build-exit-code",
+    "2",
+    "--format",
+    "json",
+  ])
+
+  assert_eq(result.exit_code, 1)
+  assert_true(result.stdout.contains("\"category\":\"build_compile_error\""))
+  assert_true(result.stdout.contains("\"rule_ids\":[\"R002\"]"))
+  assert_true(result.stdout.contains("\"code\":\"TS2322\""))
+}
+
+///|
+async test "inspect can include assertion test observations and diagnoses" {
   @async.pause()
   let result = @cli.run([
     "inspect",

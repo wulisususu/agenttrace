@@ -43,19 +43,35 @@ jobs:
           test "$output" = "AgentTrace 0.1.0-dev"
 
           set +e
-          diagnosis="$(moon run cmd/main analyze-log fixtures/logs/vitest-assertion-failure.txt --format json)"
-          code=$?
+          assertion="$(moon run cmd/main analyze-log fixtures/logs/vitest-assertion-failure.txt --format json)"
+          assertion_code=$?
           set -e
-          printf '%s\n' "$diagnosis"
-          test "$code" -eq 1
-          printf '%s' "$diagnosis" | grep -q '"category":"test_assertion_failure"'
+          test "$assertion_code" -eq 1
+          printf '%s' "$assertion" | grep -Fq '"category":"test_assertion_failure"'
 
           inspection="$(moon run cmd/main inspect . --format json)"
-          inspect_code=$?
-          printf '%s\n' "$inspection"
-          test "$inspect_code" -eq 0
-          printf '%s' "$inspection" | grep -q '"repository":'
-          printf '%s' "$inspection" | grep -q '"environment":'
+          test "$?" -eq 0
+          printf '%s' "$inspection" | grep -Fq '"repository":'
+          printf '%s' "$inspection" | grep -Fq '"environment":'
+
+          normal="$(moon run cmd/main inspect . --log fixtures/logs/vitest-pass.txt --build-exit-code 0 --format json)"
+          test "$?" -eq 0
+          printf '%s' "$normal" | grep -Fq '"diagnoses":[]'
+
+          set +e
+          environment_case="$(moon run cmd/main inspect . --log fixtures/logs/vitest-missing-matcher.txt --build-exit-code 0 --format json)"
+          environment_code=$?
+          compile_case="$(moon run cmd/main inspect . --build-log fixtures/logs/tsc-type-error.txt --build-exit-code 2 --format json)"
+          compile_code=$?
+          set -e
+
+          test "$environment_code" -eq 1
+          printf '%s' "$environment_case" | grep -Fq '"category":"dependency_environment_error"'
+          printf '%s' "$environment_case" | grep -Fq '"rule_ids":["R001"]'
+
+          test "$compile_code" -eq 1
+          printf '%s' "$compile_case" | grep -Fq '"category":"build_compile_error"'
+          printf '%s' "$compile_case" | grep -Fq '"rule_ids":["R002"]'
 
   windows:
     runs-on: windows-latest
@@ -89,34 +105,37 @@ jobs:
         shell: pwsh
         run: |
           $output = (moon run cmd/main version | Out-String).Trim()
-          Write-Output $output
-          if ($LASTEXITCODE -ne 0) {
-            throw "version returned exit code $LASTEXITCODE"
-          }
-          if ($output -ne "AgentTrace 0.1.0-dev") {
-            throw "Unexpected CLI output: $output"
+          if ($LASTEXITCODE -ne 0 -or $output -ne "AgentTrace 0.1.0-dev") {
+            throw "version smoke test failed"
           }
 
-          $diagnosis = (moon run cmd/main analyze-log fixtures/logs/vitest-assertion-failure.txt --format json | Out-String).Trim()
-          $code = $LASTEXITCODE
-          Write-Output $diagnosis
-          if ($code -ne 1) {
-            throw "analyze-log returned exit code $code instead of 1"
-          }
-          if ($diagnosis -notmatch '"category":"test_assertion_failure"') {
-            throw "analyze-log JSON did not contain the expected diagnosis"
+          $assertion = (moon run cmd/main analyze-log fixtures/logs/vitest-assertion-failure.txt --format json | Out-String).Trim()
+          $assertionCode = $LASTEXITCODE
+          if ($assertionCode -ne 1 -or $assertion -notmatch '"category":"test_assertion_failure"') {
+            throw "assertion diagnosis smoke test failed"
           }
 
           $inspection = (moon run cmd/main inspect . --format json | Out-String).Trim()
           $inspectCode = $LASTEXITCODE
-          Write-Output $inspection
-          if ($inspectCode -ne 0) {
-            throw "inspect returned exit code $inspectCode instead of 0"
+          if ($inspectCode -ne 0 -or $inspection -notmatch '"repository":' -or $inspection -notmatch '"environment":') {
+            throw "inspect smoke test failed"
           }
-          if ($inspection -notmatch '"repository":') {
-            throw "inspect JSON did not contain repository data"
+
+          $normal = (moon run cmd/main inspect . --log fixtures/logs/vitest-pass.txt --build-exit-code 0 --format json | Out-String).Trim()
+          $normalCode = $LASTEXITCODE
+          if ($normalCode -ne 0 -or $normal -notmatch '"diagnoses":\[\]') {
+            throw "normal project smoke test failed"
           }
-          if ($inspection -notmatch '"environment":') {
-            throw "inspect JSON did not contain environment data"
+
+          $environmentCase = (moon run cmd/main inspect . --log fixtures/logs/vitest-missing-matcher.txt --build-exit-code 0 --format json | Out-String).Trim()
+          $environmentCode = $LASTEXITCODE
+          if ($environmentCode -ne 1 -or $environmentCase -notmatch '"category":"dependency_environment_error"' -or $environmentCase -notmatch '"rule_ids":\["R001"\]') {
+            throw "R001 environment diagnosis smoke test failed"
+          }
+
+          $compileCase = (moon run cmd/main inspect . --build-log fixtures/logs/tsc-type-error.txt --build-exit-code 2 --format json | Out-String).Trim()
+          $compileCode = $LASTEXITCODE
+          if ($compileCode -ne 1 -or $compileCase -notmatch '"category":"build_compile_error"' -or $compileCase -notmatch '"rule_ids":\["R002"\]') {
+            throw "R002 compile diagnosis smoke test failed"
           }
           exit 0

@@ -81,7 +81,7 @@ Diagnosis
 
 ## 项目状态
 
-当前处于 **MVP 实现阶段**。Repository/Worktree 采集、环境快照、Vitest 日志解析、确定性诊断规则、Text/JSON Reporter，以及 `version`、`analyze-log`、`inspect` CLI 已有可运行实现；`doctor`、更多日志适配器、完整脱敏与更多 Demo 仍在后续范围。
+当前处于 **MVP 实现与验证阶段**。Repository/Worktree 采集、环境快照、Vitest/TypeScript 构建日志解析、R001–R005 确定性诊断、Text/JSON Reporter，以及 `version`、`analyze-log`、`inspect` CLI 已有可运行实现；`doctor`、更多日志适配器与完整脱敏仍在后续范围。
 
 ## MVP 目标
 
@@ -111,42 +111,45 @@ agenttrace version
 agenttrace inspect .
 agenttrace inspect . --format json
 agenttrace inspect . --log ./test-output.txt --format json
+agenttrace inspect . --log ./test-output.txt --build-exit-code 0 --format json
+agenttrace inspect . --build-log ./tsc-output.txt --build-exit-code 2 --format json
 agenttrace analyze-log ./test-output.txt
 agenttrace analyze-log ./test-output.txt --format json
 ```
 
-示例输出目标：
+## 可复现核心 Demo
 
-```text
-AgentTrace
+仓库源码态可以直接运行：
 
-Repository
-  Branch: feat/ui-settings
-  Dirty files: 3
-
-Build
-  TypeScript: PASS
-
-Tests
-  Test files: 27 failed
-  Cases: 155 failed
-
-Diagnosis
-  Category: environment_dependency_error
-  Confidence: high
-
-Evidence
-  - compilation succeeds
-  - test suites share the same missing matcher
-  - dependency signal is consistent across failures
-
-Suggested action
-  1. verify dependency installation
-  2. restore dependencies
-  3. rerun tests before reverting source changes
+```bash
+moon run cmd/main inspect . \
+  --log fixtures/logs/vitest-missing-matcher.txt \
+  --build-exit-code 0 \
+  --format json
 ```
 
-> 上述报告内容仍是示意格式；实际 CLI 当前已经可运行，输出字段以 `schema_version: 0.1` 和自动化测试为准。
+这条命令显式告诉 AgentTrace “编译退出码为 0”，同时提供 27 个 suite / 155 个 case 共享 missing matcher 的测试日志。Linux 与 Windows CI 都会执行这一场景，并验证退出码为 `1`、规则为 `R001`。
+
+实际 JSON 中的关键诊断片段为：
+
+```json
+{
+  "category": "dependency_environment_error",
+  "severity": "error",
+  "confidence": "high",
+  "rule_ids": ["R001"]
+}
+```
+
+同一份测试日志如果只执行：
+
+```bash
+moon run cmd/main analyze-log fixtures/logs/vitest-missing-matcher.txt
+```
+
+由于缺少 compile-pass 事实，AgentTrace 会保持 `unknown`，不会为了得出环境结论而补造证据。
+
+完整的正常、编译故障和环境伪装案例见 [Demo 文档](docs/DEMO.md)。
 
 ## 计划中的目录结构
 
@@ -184,7 +187,7 @@ MoonBit 官方当前推荐新项目使用 `moon.mod` 和 `moon.pkg`，CLI 项目
 
 ## 许可证
 
-计划采用 Apache License 2.0，详见 [LICENSE](LICENSE)。
+采用 Apache License 2.0，详见 [LICENSE](LICENSE)。
 
 ## 项目定位
 

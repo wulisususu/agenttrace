@@ -25,6 +25,7 @@
 
 - [x] RepositorySnapshot
 - [x] EnvironmentSnapshot
+- [x] BuildObservation
 - [x] TestObservation
 - [x] Evidence
 - [x] Diagnosis
@@ -34,6 +35,7 @@
 
 - [x] 读取日志文件
 - [x] 识别至少一种测试日志
+- [x] 解析 TypeScript 编译错误
 - [x] 提取失败统计
 - [x] 构造 error signature
 - [x] 重复错误聚类
@@ -64,19 +66,19 @@
 
 ## H. Demo
 
-- [ ] 一个正常 fixture
-- [ ] 一个编译故障 fixture
+- [x] 一个正常 fixture
+- [x] 一个编译故障 fixture
 - [x] 一个断言故障 fixture
-- [ ] 一个环境故障 fixture
-- [ ] 一个“环境问题伪装成代码问题”完整案例
+- [x] 一个环境故障 fixture
+- [x] 一个“环境问题伪装成代码问题”完整案例
 
 ## I. 文档
 
 - [x] README 中当前标记为已实现的 CLI 命令可运行
-- [ ] README 中的示例输出来自实际程序
+- [x] README 中核心示例由实际 CLI / CI 验证
 - [x] 不把规划功能写成已实现
 - [ ] 安装步骤经过空环境复测
-- [ ] 测试与 Demo 可复现
+- [x] 测试与 Demo 可复现
 
 ## J. 提交质量
 
