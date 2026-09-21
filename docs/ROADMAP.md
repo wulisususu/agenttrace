@@ -95,6 +95,7 @@
 
 - [x] 建立静态 Visual Reporter；
 - [x] Case A / R001 使用真实 CLI JSON 生成；
+- [x] Unexpected Branch / R004 使用真实 CLI JSON 生成并支持页面切换；
 - [x] 校验 CLI 与 Visual Report 的 category / rule / confidence / evidence 一致性；
 - [x] 输出可下载的静态 Actions artifact；
 - [ ] 增加至少两个额外可复现案例；

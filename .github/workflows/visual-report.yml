@@ -36,44 +36,61 @@ jobs:
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s "$MOONBIT_VERSION"
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
 
-      - name: Generate R001 demo JSON from the real CLI
+      - name: Generate demo JSON from the real CLI
         shell: bash
         run: |
           moon update
           mkdir -p web/data
 
           set +e
-          demo="$(moon run cmd/main inspect . --log fixtures/logs/vitest-missing-matcher.txt --build-exit-code 0 --format json)"
-          code=$?
+          dependency_case="$(moon run cmd/main inspect . --log fixtures/logs/vitest-missing-matcher.txt --build-exit-code 0 --format json)"
+          dependency_code=$?
+          branch_case="$(moon run cmd/main inspect . --expected-branch __agenttrace_expected_branch__ --format json)"
+          branch_code=$?
           set -e
 
-          test "$code" -eq 1
-          printf '%s\n' "$demo" > web/data/dependency-environment.json
+          test "$dependency_code" -eq 1
+          test "$branch_code" -eq 1
 
-      - name: Validate Visual Report data contract
+          printf '%s\n' "$dependency_case" > web/data/dependency-environment.json
+          printf '%s\n' "$branch_case" > web/data/unexpected-branch.json
+
+      - name: Validate Visual Report data contracts
         shell: bash
         run: |
           python3 - <<'PY'
           import json
           from pathlib import Path
 
-          path = Path("web/data/dependency-environment.json")
-          data = json.loads(path.read_text(encoding="utf-8"))
+          dependency = json.loads(
+              Path("web/data/dependency-environment.json").read_text(encoding="utf-8")
+          )
+          assert dependency["schema_version"] == "0.1"
+          assert dependency["build"]["status"] == "pass"
+          assert dependency["tests"]["failed_suites"] == 27
+          assert dependency["tests"]["failed_tests"] == 155
+          d1 = dependency["diagnoses"][0]
+          assert d1["category"] == "dependency_environment_error"
+          assert d1["severity"] == "error"
+          assert d1["confidence"] == "high"
+          assert d1["rule_ids"] == ["R001"]
+          assert len(d1["evidence"]) >= 2
+          assert len(d1["suggested_checks"]) >= 1
 
-          assert data["schema_version"] == "0.1"
-          assert data["build"]["status"] == "pass"
-          assert data["tests"]["failed_suites"] == 27
-          assert data["tests"]["failed_tests"] == 155
-
-          diagnoses = data["diagnoses"]
-          assert len(diagnoses) >= 1
-          diagnosis = diagnoses[0]
-          assert diagnosis["category"] == "dependency_environment_error"
-          assert diagnosis["severity"] == "error"
-          assert diagnosis["confidence"] == "high"
-          assert diagnosis["rule_ids"] == ["R001"]
-          assert len(diagnosis["evidence"]) >= 2
-          assert len(diagnosis["suggested_checks"]) >= 1
+          branch = json.loads(
+              Path("web/data/unexpected-branch.json").read_text(encoding="utf-8")
+          )
+          assert branch["schema_version"] == "0.1"
+          assert branch["build"] is None
+          assert branch["tests"] is None
+          assert branch["repository"]["branch"] != "__agenttrace_expected_branch__"
+          d2 = branch["diagnoses"][0]
+          assert d2["category"] == "worktree_state_error"
+          assert d2["severity"] == "error"
+          assert d2["confidence"] == "high"
+          assert d2["rule_ids"] == ["R004"]
+          assert any(e["kind"] == "branch_mismatch" for e in d2["evidence"])
+          assert len(d2["suggested_checks"]) >= 1
           PY
 
       - name: Smoke test static bundle over HTTP
@@ -86,7 +103,9 @@ jobs:
 
           curl --fail --silent http://127.0.0.1:4173/ | grep -Fq "AgentTrace Visual Report"
           curl --fail --silent http://127.0.0.1:4173/app.js | grep -Fq "dependency-environment.json"
+          curl --fail --silent http://127.0.0.1:4173/app.js | grep -Fq "unexpected-branch.json"
           curl --fail --silent http://127.0.0.1:4173/data/dependency-environment.json | grep -Fq '"rule_ids":["R001"]'
+          curl --fail --silent http://127.0.0.1:4173/data/unexpected-branch.json | grep -Fq '"rule_ids":["R004"]'
 
       - name: Upload generated static report
         uses: actions/upload-artifact@v4
