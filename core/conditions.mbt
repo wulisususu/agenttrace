@@ -13,6 +13,18 @@ pub(all) struct Condition {
 }
 
 ///|
+/// Explain how a condition evaluated, including missing mandatory evidence,
+/// the `any_of` alternatives that matched, and forbidden evidence that
+/// blocked the condition.
+pub(all) struct ConditionReport {
+  matched : Bool
+  empty_condition : Bool
+  missing_all : Array[String]
+  matched_any : Array[String]
+  blocked_by : Array[String]
+}
+
+///|
 pub fn condition_is_empty(condition : Condition) -> Bool {
   condition.all_of.length() == 0 &&
   condition.any_of.length() == 0 &&
@@ -65,40 +77,56 @@ pub fn evidence_by_kind(
 }
 
 ///|
-/// Evaluate a composable condition against a set of structured evidence.
-pub fn condition_matches(
+/// Return an explanation of a composable condition evaluation.
+pub fn inspect_condition(
   condition : Condition,
   evidence : Array[Evidence],
-) -> Bool {
-  if condition_is_empty(condition) {
-    return false
-  }
+) -> ConditionReport {
+  let empty = condition_is_empty(condition)
+  let missing_all : Array[String] = []
+  let matched_any : Array[String] = []
+  let blocked_by : Array[String] = []
 
   for kind in condition.all_of {
     if !evidence_has_kind(evidence, kind) {
-      return false
+      missing_all.push(kind)
     }
   }
 
-  if condition.any_of.length() > 0 {
-    let mut any_matched = false
-    for kind in condition.any_of {
-      if evidence_has_kind(evidence, kind) {
-        any_matched = true
-      }
-    }
-    if !any_matched {
-      return false
+  for kind in condition.any_of {
+    if evidence_has_kind(evidence, kind) {
+      matched_any.push(kind)
     }
   }
 
   for kind in condition.none_of {
     if evidence_has_kind(evidence, kind) {
-      return false
+      blocked_by.push(kind)
     }
   }
 
-  true
+  let any_ok =
+    condition.any_of.length() == 0 || matched_any.length() > 0
+
+  {
+    matched: !empty &&
+      missing_all.length() == 0 &&
+      any_ok &&
+      blocked_by.length() == 0,
+    empty_condition: empty,
+    missing_all,
+    matched_any,
+    blocked_by,
+  }
+}
+
+///|
+/// Evaluate a composable condition against a set of structured evidence.
+pub fn condition_matches(
+  condition : Condition,
+  evidence : Array[Evidence],
+) -> Bool {
+  inspect_condition(condition, evidence).matched
 }
 
 ///|
