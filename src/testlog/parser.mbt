@@ -2,7 +2,7 @@
 pub(all) struct ErrorSignature {
   message : String
   occurrences : Int
-} derive(Eq, Show)
+}
 
 ///|
 pub(all) struct TestObservation {
@@ -11,7 +11,7 @@ pub(all) struct TestObservation {
   failed_suites : Int
   failed_tests : Int
   error_signatures : Array[ErrorSignature]
-} derive(Eq, Show)
+}
 
 ///|
 fn non_empty_words(line : StringView) -> Array[String] {
