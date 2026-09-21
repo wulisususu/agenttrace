@@ -25,26 +25,26 @@
 
 - [ ] RepositorySnapshot
 - [ ] EnvironmentSnapshot
-- [ ] TestObservation
-- [ ] Evidence
-- [ ] Diagnosis
+- [x] TestObservation
+- [x] Evidence
+- [x] Diagnosis
 - [ ] DiagnosticReport
 
 ## D. Parser
 
 - [ ] 读取日志文件
-- [ ] 识别至少一种测试日志
-- [ ] 提取失败统计
-- [ ] 构造 error signature
-- [ ] 重复错误聚类
+- [x] 识别至少一种测试日志
+- [x] 提取失败统计
+- [x] 构造 error signature
+- [x] 重复错误聚类
 
 ## E. Diagnosis
 
 - [ ] 至少 4 类诊断
 - [ ] 每类至少一个测试
-- [ ] unknown fallback
-- [ ] 每条 diagnosis 关联 evidence
-- [ ] 不输出伪精确概率
+- [x] unknown fallback
+- [x] 每条 diagnosis 关联 evidence
+- [x] 不输出伪精确概率
 
 ## F. Repository / Environment
 
@@ -56,9 +56,9 @@
 
 ## G. Reporter
 
-- [ ] text
-- [ ] JSON
-- [ ] schema_version
+- [x] text
+- [x] JSON
+- [x] schema_version
 - [ ] 脱敏策略
 - [ ] exit code 语义
 
