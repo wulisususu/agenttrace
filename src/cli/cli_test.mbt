@@ -122,11 +122,11 @@ async test "inspect can include test observations and diagnoses" {
 }
 
 ///|
-async test "inspect returns input error outside a Git repository" {
+async test "inspect returns input error for an inaccessible repository path" {
   @async.pause()
   let result = @cli.run([
     "inspect",
-    "fixtures/environment/yarn-pnp",
+    "fixtures/repository/does-not-exist",
   ])
 
   assert_eq(result.exit_code, 3)
