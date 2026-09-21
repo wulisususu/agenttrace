@@ -47,16 +47,16 @@ jobs:
           assertion_code=$?
           set -e
           test "$assertion_code" -eq 1
-          printf '%s' "$assertion" | grep -q '"category":"test_assertion_failure"'
+          printf '%s' "$assertion" | grep -Fq '"category":"test_assertion_failure"'
 
           inspection="$(moon run cmd/main inspect . --format json)"
           test "$?" -eq 0
-          printf '%s' "$inspection" | grep -q '"repository":'
-          printf '%s' "$inspection" | grep -q '"environment":'
+          printf '%s' "$inspection" | grep -Fq '"repository":'
+          printf '%s' "$inspection" | grep -Fq '"environment":'
 
           normal="$(moon run cmd/main inspect . --log fixtures/logs/vitest-pass.txt --build-exit-code 0 --format json)"
           test "$?" -eq 0
-          printf '%s' "$normal" | grep -q '"diagnoses":[]'
+          printf '%s' "$normal" | grep -Fq '"diagnoses":[]'
 
           set +e
           environment_case="$(moon run cmd/main inspect . --log fixtures/logs/vitest-missing-matcher.txt --build-exit-code 0 --format json)"
@@ -66,12 +66,12 @@ jobs:
           set -e
 
           test "$environment_code" -eq 1
-          printf '%s' "$environment_case" | grep -q '"category":"dependency_environment_error"'
-          printf '%s' "$environment_case" | grep -q '"rule_ids":\["R001"\]'
+          printf '%s' "$environment_case" | grep -Fq '"category":"dependency_environment_error"'
+          printf '%s' "$environment_case" | grep -Fq '"rule_ids":\["R001"\]'
 
           test "$compile_code" -eq 1
-          printf '%s' "$compile_case" | grep -q '"category":"build_compile_error"'
-          printf '%s' "$compile_case" | grep -q '"rule_ids":\["R002"\]'
+          printf '%s' "$compile_case" | grep -Fq '"category":"build_compile_error"'
+          printf '%s' "$compile_case" | grep -Fq '"rule_ids":\["R002"\]'
 
   windows:
     runs-on: windows-latest
