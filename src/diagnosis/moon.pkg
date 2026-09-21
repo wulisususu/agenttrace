@@ -1,4 +1,5 @@
 import {
+  "wulisususu/agenttrace/src/buildlog" @buildlog,
   "wulisususu/agenttrace/src/environment" @environment,
   "wulisususu/agenttrace/src/testlog" @testlog,
 }
