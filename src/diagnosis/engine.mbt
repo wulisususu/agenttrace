@@ -84,6 +84,43 @@ pub fn diagnose_r001(
 
 ///|
 pub fn diagnose_r002(
+  build : @buildlog.BuildObservation,
+) -> Diagnosis {
+  if build.status == "fail" &&
+    build.exit_code != 0 &&
+    build.errors.length() > 0 {
+    {
+      category: "build_compile_error",
+      severity: "error",
+      confidence: "high",
+      rule_ids: ["R002"],
+      evidence: [
+        {
+          id: "E-R002-COMPILER-EXIT",
+          kind: "compiler_exit",
+          message: "TypeScript compiler exited with a non-zero status",
+          source: "build",
+        },
+        {
+          id: "E-R002-SOURCE-LOCATION",
+          kind: "source_location",
+          message: "Compiler reported at least one source-located TypeScript error",
+          source: "buildlog",
+        },
+      ],
+      suggested_checks: [
+        "inspect the first source-located compiler error",
+        "rerun the compiler after a targeted source fix",
+        "avoid changing dependency state unless compiler evidence points there",
+      ],
+    }
+  } else {
+    unknown_diagnosis()
+  }
+}
+
+///|
+pub fn diagnose_r005(
   environment : @environment.EnvironmentSnapshot,
 ) -> Diagnosis {
   if environment.package_managers.length() >= 2 &&
@@ -92,16 +129,16 @@ pub fn diagnose_r002(
       category: "package_manager_ambiguity",
       severity: "warning",
       confidence: "medium",
-      rule_ids: ["R002"],
+      rule_ids: ["R005"],
       evidence: [
         {
-          id: "E-R002-MULTIPLE-MANAGERS",
+          id: "E-R005-MULTIPLE-MANAGERS",
           kind: "package_manager_signal",
           message: "Top-level lockfiles indicate multiple package managers",
           source: "environment",
         },
         {
-          id: "E-R002-MULTIPLE-LOCKFILES",
+          id: "E-R005-MULTIPLE-LOCKFILES",
           kind: "lockfile_set",
           message: "Multiple top-level lockfiles are present",
           source: "environment",
