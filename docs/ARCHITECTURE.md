@@ -38,9 +38,55 @@ Local Repository / Logs
 └─────────────────────┘
 ```
 
-## 3. 模块划分
+## 3. 与 AI Coding Agent 的关系
 
-### 3.1 git
+AgentTrace 位于 AI Coding Agent 与底层工程状态之间，职责不是替代 Agent 的推理与修复，而是提供稳定的工程事实和确定性诊断。
+
+```text
+Codex / Claude Code / other Agent
+              │
+              │ reasoning / repair
+              ▼
+          AgentTrace
+              │
+        DiagnosisResult
+              │
+              ▼
+ Git / Worktree / Env / Build / Test
+```
+
+职责边界：
+
+- AgentTrace 负责采集、归一化、关联和输出证据；
+- 上层 Agent 根据 DiagnosisResult 决定是否继续检查、修改代码或执行修复；
+- AgentTrace 默认不直接修改用户源码，也不承担多 Agent 调度；
+- 相同输入应尽可能得到相同的诊断结果，避免把基础故障归因完全交给概率性模型。
+
+Text Reporter 面向人类终端使用；JSON Reporter 面向 Codex、Claude Code、CI 和其他自动化工具集成。
+
+典型调用可以是：
+
+```text
+Agent modifies code
+       │
+       ▼
+build / test fails
+       │
+       ▼
+agenttrace inspect . --format json
+       │
+       ▼
+structured evidence + diagnosis
+       │
+       ▼
+Agent decides next repair step
+```
+
+这样可以避免上层 Agent 仅凭最后一段错误日志就直接修改或回滚源码，而忽略 Worktree、HEAD、依赖或环境异常。
+
+## 4. 模块划分
+
+### 4.1 git
 
 职责：
 
@@ -52,7 +98,7 @@ Local Repository / Logs
 
 该模块只负责采集和解析，不直接做“故障”结论。
 
-### 3.2 environment
+### 4.2 environment
 
 职责：
 
@@ -63,7 +109,7 @@ Local Repository / Logs
 
 首版只输出 evidence，不主动修改环境。
 
-### 3.3 testlog
+### 4.3 testlog
 
 职责：
 
@@ -72,7 +118,7 @@ Local Repository / Logs
 - 提取错误行、测试统计、重复模式；
 - 生成统一的 TestObservation。
 
-### 3.4 diagnosis
+### 4.4 diagnosis
 
 职责：
 
@@ -83,7 +129,7 @@ Local Repository / Logs
 
 该模块应避免直接读取文件或执行命令。
 
-### 3.5 report
+### 4.5 report
 
 职责：
 
@@ -91,7 +137,7 @@ Local Repository / Logs
 - JSON 输出；
 - 保证机器可读字段稳定。
 
-### 3.6 cmd/main
+### 4.6 cmd/main
 
 只做：
 
@@ -102,7 +148,7 @@ Local Repository / Logs
 
 不在这里堆叠诊断业务逻辑。
 
-## 4. 建议目录
+## 5. 建议目录
 
 ```text
 .
@@ -124,7 +170,7 @@ Local Repository / Logs
 
 实际 MoonBit package 布局在初始化时根据编译器和包系统验证后落地。
 
-## 5. 依赖方向
+## 6. 依赖方向
 
 推荐：
 
@@ -145,7 +191,7 @@ diagnosis -> cmd
 model     -> filesystem/process APIs
 ```
 
-## 6. AI 增强层
+## 7. AI 增强层
 
 未来可添加：
 
@@ -159,7 +205,7 @@ DiagnosisResult
 
 LLM 只能解释已有证据或提出额外检查建议，不能静默覆盖确定性诊断结果。
 
-## 7. 可移植性
+## 8. 可移植性
 
 MVP 首选 Native CLI，以便访问本地 Git、文件系统和进程。
 
