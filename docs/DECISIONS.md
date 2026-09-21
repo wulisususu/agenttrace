@@ -103,12 +103,33 @@ Diagnosis Engine 负责把多个事实组合成结论。
 
 ---
 
+## ADR-008：Git 通过无 Shell 子进程采集
+
+**状态：Accepted**
+
+MVP 使用 Git CLI 自身提供的机器可读接口采集仓库事实，而不是直接解析 `.git` 内部文件：
+
+- `git status --porcelain=v2 -z`；
+- `git worktree list --porcelain`；
+- `git rev-parse`；
+- `git branch --show-current`。
+
+实现使用 `moonbitlang/async/process` 直接执行 `git`，命令与参数分离，不通过 Bash、PowerShell 或 `cmd /c` 拼接用户输入。
+
+原因：
+
+- Git 自己处理主仓库、linked worktree 和平台差异；
+- porcelain 接口比面向人的本地化文本稳定；
+- 参数数组避免路径空格、中文和 shell 注入问题；
+- Collector 仍然保持只读，不执行 reset/clean/checkout 等修改命令。
+
+`moonbitlang/async` 在 MVP 中固定版本，升级时必须经过 Linux/Windows CI 验证。
+
+---
+
 ## 后续 ADR 候选
 
 待真实实现验证后决定：
 
-- Git 信息通过子进程还是库实现；
-- async IO 边界；
-- JSON 库选择；
 - parser plugin 机制；
-- Windows 进程调用策略。
+- Windows 本地代码页兼容策略。
