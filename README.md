@@ -81,7 +81,7 @@ Diagnosis
 
 ## 项目状态
 
-**MVP 验收闭环已完成**。Repository/Worktree 采集、环境快照、Vitest/TypeScript 构建日志解析、R001–R005 确定性诊断、Text/JSON Reporter、默认 Home 路径脱敏，以及 `version`、`analyze-log`、`inspect` CLI 均已通过 Linux / Windows 与 fresh-clone 验证。Post-MVP 已进入 Visual Report 阶段：R001 环境故障、R004 显式分支预期、R002 源码编译错误三个静态报告案例都由真实 CLI JSON 生成并经 CI 校验；公开 Live Demo 部署和更多案例仍在后续范围。
+**MVP 验收闭环已完成**。Repository/Worktree 采集、环境快照、Vitest/TypeScript 构建日志解析、R001–R005 确定性诊断、Text/JSON Reporter、默认 Home 路径脱敏，以及 `version`、`analyze-log`、`inspect` CLI 均已通过 Linux / Windows 与 fresh-clone 验证。Post-MVP 已进入 Visual Report 阶段：R001 环境故障、R004 显式分支预期、R002 源码编译错误三个案例都由真实 CLI JSON 生成并经 CI 校验；公开 Live Demo 已通过 GitHub Pages 上线，并采用“普通用户先看结论、开发者再展开技术证据”的双层展示。
 
 ## MVP 目标
 
@@ -237,7 +237,7 @@ moon run cmd/main inspect . \
 
 然后把三份 JSON 写入静态报告 bundle，校验 `category / severity / confidence / rule_ids / evidence`，通过 HTTP smoke test 后上传为 `agenttrace-visual-report` Actions artifact。
 
-当前状态：**三案例静态 Reporter + 真实数据生成链已实现；公开 Pages/Live Demo 尚未宣称完成。**
+当前状态：**三案例 Visual Reporter + 真实数据生成链 + GitHub Pages Live Demo 均已实现。** 公开地址：https://wulisususu.github.io/agenttrace/
 
 ## 默认报告脱敏
 
