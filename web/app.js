@@ -22,6 +22,18 @@ const CASES = {
       "  --format json",
     ].join("\n"),
   },
+  compile: {
+    dataUrl: "./data/source-compile-error.json",
+    title: "Source compile error",
+    summary:
+      "The compiler exited unsuccessfully and reported a source-located TypeScript error, so the next check belongs in source code rather than dependency state.",
+    reproduce: [
+      "moon run cmd/main inspect . \\",
+      "  --build-log fixtures/logs/tsc-type-error.txt \\",
+      "  --build-exit-code 2 \\",
+      "  --format json",
+    ].join("\n"),
+  },
 };
 
 const byId = (id) => document.getElementById(id);

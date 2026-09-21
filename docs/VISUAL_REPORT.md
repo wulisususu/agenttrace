@@ -2,11 +2,12 @@
 
 ## 0. 当前实现状态
 
-前两个纵向切片已经实现：
+前三个纵向切片已经实现：
 
 - Case A（Dependency Environment Failure / R001）已有静态 Visual Report；
 - Case B（Unexpected Branch / R004）使用显式 `--expected-branch` 约束展示仓库现场与任务预期不一致；
-- 页面可在两个案例间切换，两份数据都由真实 `agenttrace inspect ... --format json` 生成；
+- Case C（Source Compile Error / R002）展示源码定位明确的 TypeScript 编译故障；
+- 页面可在三个案例间切换，三份数据都由真实 `agenttrace inspect ... --format json` 生成；
 - CI 校验 `schema_version`、build/test 事实、category、severity、confidence、R001、Evidence 和 Suggested Action；
 - 静态 bundle 通过 HTTP smoke test 后作为 `agenttrace-visual-report` Actions artifact 上传；
 - 浏览器代码只负责展示，不重新判断故障类型；
@@ -187,7 +188,7 @@ moon run cmd/main inspect . \
 - Evidence 不得添加不存在于 JSON 中的事实；
 - Suggested Action 不得与核心诊断相冲突。
 
-R001 与 R004 页面都已经在 CI 中校验真实 CLI JSON 的关键契约；后续扩展更多案例时再评估完整 golden JSON / snapshot 校验。
+R001、R004 与 R002 页面都已经在 CI 中校验真实 CLI JSON 的关键契约；后续扩展更多案例时再评估完整 golden JSON / snapshot 校验。
 
 ## 7. Live Demo 定位
 
