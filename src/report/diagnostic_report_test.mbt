@@ -88,3 +88,49 @@ test "aggregate text report includes collected facts" {
   assert_true(actual.contains("Package managers: yarn"))
   assert_true(actual.contains("Diagnoses\n  - none"))
 }
+
+///|
+test "aggregate reporters redact home paths without mutating snapshots" {
+  let repository : @git.RepositorySnapshot = {
+    root: "C:\\Users\\Alice\\work\\repo",
+    branch: "main",
+    head: "cccccccccccccccccccccccccccccccccccccccc",
+    is_dirty: false,
+    changed_files: [],
+    worktrees: [
+      {
+        path: "C:\\Users\\Alice\\work\\repo",
+        head: "cccccccccccccccccccccccccccccccccccccccc",
+        branch: "main",
+        detached: false,
+        bare: false,
+        prunable: false,
+      },
+    ],
+  }
+  let environment = @environment.detect_environment_from_names([])
+  let build = @buildlog.parse_tsc(
+    "C:\\Users\\Alice\\work\\repo\\src\\main.ts(4,2): error TS2322: mismatch",
+    2,
+  )
+  let report : @report.DiagnosticReport = {
+    repository,
+    environment,
+    build: Some(build),
+    tests: None,
+    diagnoses: [],
+  }
+
+  let json = @report.render_report_json(report)
+  let text = @report.render_report_text(report)
+
+  assert_true(json.contains("\"root\":\"$HOME/work/repo\""))
+  assert_true(json.contains("\"path\":\"$HOME/work/repo\""))
+  assert_true(json.contains("\"file\":\"$HOME/work/repo/src/main.ts\""))
+  assert_true(!json.contains("Alice"))
+  assert_true(text.contains("Root: $HOME/work/repo"))
+  assert_true(!text.contains("Alice"))
+
+  // Reporting is a view concern; evidence collection remains unchanged.
+  assert_eq(repository.root, "C:\\Users\\Alice\\work\\repo")
+}

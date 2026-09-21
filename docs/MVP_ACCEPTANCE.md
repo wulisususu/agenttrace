@@ -61,7 +61,7 @@
 - [x] text
 - [x] JSON
 - [x] schema_version
-- [ ] 脱敏策略
+- [x] 默认路径脱敏策略
 - [x] exit code 语义
 
 ## H. Demo

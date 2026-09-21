@@ -29,12 +29,7 @@ config_files[]
 observations[]
 ```
 
-MVP 不保存机器敏感信息，例如：
-
-- 用户名；
-- Home 目录完整路径（报告时可脱敏）；
-- token；
-- 环境变量秘密值。
+MVP 不采集或保存环境变量秘密值、token、cookies、SSH key 或带凭据的 remote URL。
 
 ## 3. TestObservation
 
@@ -47,7 +42,7 @@ error_signatures[]
 raw_source
 ```
 
-其中 `raw_source` 建议只保存来源标识，不在默认 JSON 报告里回显整个日志。
+默认报告只输出结构化摘要，不回显整个原始测试日志。
 
 ## 4. BuildObservation
 
@@ -68,7 +63,7 @@ code
 message
 ```
 
-BuildObservation 只保存编译事实；是否属于源码故障由 Diagnosis Engine 决定。
+BuildObservation 只保存编译事实；是否属于源码故障由 Diagnosis Engine 决定。报告层会对源码文件绝对路径执行与仓库路径相同的 Home 路径脱敏。
 
 ## 5. Evidence
 
@@ -134,18 +129,21 @@ JSON 输出必须包含 `schema_version`。
 
 新增字段优先保持向后兼容；删除或改变字段语义时提高 schema version。
 
-## 9. 敏感信息处理
+## 9. 默认敏感信息处理
 
-默认报告应避免直接包含：
+脱敏发生在 **Reporter 边界**，而不是采集层。这样规则引擎仍能看到完整、真实的工程事实，同时默认对外输出不会直接暴露常见用户 Home 路径。
 
-- access token；
-- cookies；
-- 完整环境变量；
-- SSH key；
-- 私有仓库远端 URL 中的凭据；
-- 日志中的明显密钥。
+MVP 当前保证：
 
-未来如果实现日志脱敏，应在 reporter 之前完成，避免不同输出格式出现安全差异。
+- Windows `C:\Users\<name>\...` 与 `C:/Users/<name>/...` 折叠为 `$HOME/...`；
+- Linux `/home/<name>/...` 折叠为 `$HOME/...`；
+- macOS `/Users/<name>/...` 折叠为 `$HOME/...`；
+- Repository root、Worktree path、TypeScript BuildError.file 在 JSON 报告中使用同一策略；
+- Text 聚合报告中的 Repository root 使用同一策略；
+- 原始测试日志和原始构建日志不会被默认报告回显；
+- EnvironmentSnapshot 不读取环境变量秘密值，RepositorySnapshot 不采集 remote URL。
+
+这不是通用 secret scanner。MVP 不声称能识别任意自由文本中的所有 token/密钥；后续如果增加原始日志输出或更自由的 metadata 字段，必须在进入 Reporter 前扩展专门的 secret redaction。
 
 ## 10. 时间模型
 

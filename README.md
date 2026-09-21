@@ -81,7 +81,7 @@ Diagnosis
 
 ## 项目状态
 
-当前处于 **MVP 实现与验证阶段**。Repository/Worktree 采集、环境快照、Vitest/TypeScript 构建日志解析、R001–R005 确定性诊断、Text/JSON Reporter，以及 `version`、`analyze-log`、`inspect` CLI 已有可运行实现；`doctor`、更多日志适配器与完整脱敏仍在后续范围。
+当前处于 **MVP 实现与验证阶段**。Repository/Worktree 采集、环境快照、Vitest/TypeScript 构建日志解析、R001–R005 确定性诊断、Text/JSON Reporter、默认 Home 路径脱敏，以及 `version`、`analyze-log`、`inspect` CLI 已有可运行实现；`doctor`、更多日志适配器与更广泛的 secret scanner 仍在后续范围。
 
 ## MVP 目标
 
@@ -100,6 +100,7 @@ Diagnosis
 - **AI 为可选增强层**：未来可根据结构化诊断结果生成自然语言解释，但不能成为基础诊断唯一依赖。
 - **证据驱动**：每条诊断结论应能指出对应证据。
 - **可复现**：通过 fixtures 和自动化测试复现典型故障。
+- **默认最小暴露**：报告不回显原始日志，对常见用户 Home 绝对路径在 Reporter 边界折叠为 `$HOME`。
 - **范围克制**：MVP 不做 IDE、不做完整多 Agent 调度平台、不自动修改用户源码。
 
 ## 当前 CLI
@@ -150,6 +151,18 @@ moon run cmd/main analyze-log fixtures/logs/vitest-missing-matcher.txt
 由于缺少 compile-pass 事实，AgentTrace 会保持 `unknown`，不会为了得出环境结论而补造证据。
 
 完整的正常、编译故障和环境伪装案例见 [Demo 文档](docs/DEMO.md)。
+
+## 默认报告脱敏
+
+Reporter 默认对常见用户 Home 路径做最小化脱敏：
+
+```text
+C:\Users\Alice\work\repo  -> $HOME/work/repo
+/home/alice/work/repo       -> $HOME/work/repo
+/Users/alice/work/repo      -> $HOME/work/repo
+```
+
+脱敏只影响输出视图，不改变 RepositorySnapshot / BuildObservation 原始事实。AgentTrace 默认也不回显整份测试或构建日志。MVP 不把这一能力描述成通用 secret scanner。
 
 ## 计划中的目录结构
 
