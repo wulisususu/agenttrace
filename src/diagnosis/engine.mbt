@@ -163,6 +163,54 @@ pub fn diagnose_r003(
 }
 
 ///|
+pub fn diagnose_r004(
+  repository : @git.RepositorySnapshot,
+  expected_branch : String,
+  require_clean : Bool,
+) -> Diagnosis {
+  let branch_mismatch =
+    expected_branch != "" && repository.branch != expected_branch
+  let dirty_violation = require_clean && repository.is_dirty
+
+  if branch_mismatch || dirty_violation {
+    let evidence : Array[Evidence] = []
+
+    if branch_mismatch {
+      evidence.push({
+        id: "E-R004-BRANCH-MISMATCH",
+        kind: "branch_mismatch",
+        message: "Current worktree branch does not match the explicitly expected branch",
+        source: "repository",
+      })
+    }
+
+    if dirty_violation {
+      evidence.push({
+        id: "E-R004-DIRTY-WORKTREE",
+        kind: "dirty_worktree",
+        message: "Working tree contains changes while a clean worktree was explicitly required",
+        source: "repository",
+      })
+    }
+
+    {
+      category: "worktree_state_error",
+      severity: if branch_mismatch { "error" } else { "warning" },
+      confidence: if branch_mismatch { "high" } else { "medium" },
+      rule_ids: ["R004"],
+      evidence,
+      suggested_checks: [
+        "verify that the current worktree is the intended execution target",
+        "compare the current branch and HEAD with the expected task context",
+        "review local changes before switching branches or cleaning the worktree",
+      ],
+    }
+  } else {
+    unknown_diagnosis()
+  }
+}
+
+///|
 pub fn diagnose_r005(
   environment : @environment.EnvironmentSnapshot,
 ) -> Diagnosis {

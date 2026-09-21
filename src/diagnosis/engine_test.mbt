@@ -145,6 +145,80 @@ test "R003 does not confuse missing matcher setup failure with assertion failure
 }
 
 ///|
+test "R004 diagnoses an explicit branch expectation mismatch" {
+  let repository : @git.RepositorySnapshot = {
+    root: "C:/repo",
+    branch: "feat/actual",
+    head: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    is_dirty: false,
+    changed_files: [],
+    worktrees: [],
+  }
+  let diagnosis = @diagnosis.diagnose_r004(
+    repository,
+    "feat/expected",
+    false,
+  )
+
+  assert_eq(diagnosis.category, "worktree_state_error")
+  assert_eq(diagnosis.severity, "error")
+  assert_eq(diagnosis.confidence, "high")
+  assert_eq(diagnosis.rule_ids[0], "R004")
+  assert_eq(diagnosis.evidence.length(), 1)
+  assert_eq(diagnosis.evidence[0].kind, "branch_mismatch")
+}
+
+///|
+test "R004 diagnoses dirty state only when clean worktree is required" {
+  let repository : @git.RepositorySnapshot = {
+    root: "/repo",
+    branch: "main",
+    head: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    is_dirty: true,
+    changed_files: ["src/main.ts"],
+    worktrees: [],
+  }
+  let diagnosis = @diagnosis.diagnose_r004(repository, "main", true)
+
+  assert_eq(diagnosis.category, "worktree_state_error")
+  assert_eq(diagnosis.severity, "warning")
+  assert_eq(diagnosis.confidence, "medium")
+  assert_eq(diagnosis.evidence.length(), 1)
+  assert_eq(diagnosis.evidence[0].kind, "dirty_worktree")
+}
+
+///|
+test "R004 leaves ordinary dirty development worktree alone without clean requirement" {
+  let repository : @git.RepositorySnapshot = {
+    root: "/repo",
+    branch: "main",
+    head: "cccccccccccccccccccccccccccccccccccccccc",
+    is_dirty: true,
+    changed_files: ["src/main.ts"],
+    worktrees: [],
+  }
+  let diagnosis = @diagnosis.diagnose_r004(repository, "main", false)
+
+  assert_eq(diagnosis.category, "unknown")
+  assert_eq(diagnosis.evidence.length(), 0)
+}
+
+///|
+test "R004 accepts matching branch and clean worktree" {
+  let repository : @git.RepositorySnapshot = {
+    root: "/repo",
+    branch: "main",
+    head: "dddddddddddddddddddddddddddddddddddddddd",
+    is_dirty: false,
+    changed_files: [],
+    worktrees: [],
+  }
+  let diagnosis = @diagnosis.diagnose_r004(repository, "main", true)
+
+  assert_eq(diagnosis.category, "unknown")
+}
+
+///|
 test "R005 reports top-level package manager ambiguity" {
   let environment = @environment.detect_environment_from_names([
     "package.json",

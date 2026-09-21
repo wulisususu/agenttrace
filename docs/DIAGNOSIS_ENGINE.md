@@ -101,15 +101,16 @@ MVP 最小条件：
 
 ### R004：Worktree 有未预期状态
 
-条件可能包括：
+MVP 不把 dirty worktree 本身视为错误。调用方必须显式提供预期约束：
 
-- 当前 worktree 与目标 branch 不一致；
-- 工作区存在未提交文件；
-- 操作所需文件来自其他 worktree。
+- `expected_branch` 非空时，当前 branch 与目标 branch 不一致；
+- `require_clean = true` 时，工作区存在未提交文件。
 
 倾向：
 
 `worktree_state_error`
+
+分支不匹配属于强信号，首版使用 error + high confidence；仅违反显式 clean 要求时使用 warning + medium confidence。未提供相应预期时，不根据 dirty/branch 状态猜测故障。
 
 ### R005：顶层 lockfile 指向多个包管理器
 
