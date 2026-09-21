@@ -40,8 +40,8 @@
 
 ## E. Diagnosis
 
-- [ ] 至少 4 类诊断
-- [ ] 每类至少一个测试
+- [x] 至少 4 类诊断
+- [x] 每类至少一个测试
 - [x] unknown fallback
 - [x] 每条 diagnosis 关联 evidence
 - [x] 不输出伪精确概率
