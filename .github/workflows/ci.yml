@@ -23,6 +23,9 @@ jobs:
       - name: Show toolchain
         run: moon version --all
 
+      - name: Refresh package registry
+        run: moon update
+
       - name: Check
         run: moon check --target native --deny-warn
 
@@ -54,6 +57,9 @@ jobs:
 
       - name: Show toolchain
         run: moon version --all
+
+      - name: Refresh package registry
+        run: moon update
 
       - name: Check
         run: moon check --target native --deny-warn
