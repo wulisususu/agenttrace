@@ -19,6 +19,16 @@ fn valid_confidence(value : String) -> Bool {
 }
 
 ///|
+fn validation_contains(kinds : Array[String], target : String) -> Bool {
+  for kind in kinds {
+    if kind == target {
+      return true
+    }
+  }
+  false
+}
+
+///|
 fn validate_kinds(
   field : String,
   kinds : Array[String],
@@ -29,6 +39,36 @@ fn validate_kinds(
       issues.push({
         field,
         message: "evidence kind must not be empty",
+      })
+    }
+  }
+}
+
+///|
+fn validate_condition_consistency(
+  condition : Condition,
+  issues : Array[ValidationIssue],
+) -> Unit {
+  for kind in condition.all_of {
+    if kind != "" && validation_contains(condition.none_of, kind) {
+      issues.push({
+        field: "condition",
+        message: "evidence kind cannot be required and forbidden: " + kind,
+      })
+    }
+  }
+
+  if condition.any_of.length() > 0 {
+    let mut available_alternative = false
+    for kind in condition.any_of {
+      if kind != "" && !validation_contains(condition.none_of, kind) {
+        available_alternative = true
+      }
+    }
+    if !available_alternative {
+      issues.push({
+        field: "condition",
+        message: "every any_of alternative is forbidden by none_of",
       })
     }
   }
@@ -71,6 +111,7 @@ pub fn validate_policy_rule(rule : PolicyRule) -> Array[ValidationIssue] {
   validate_kinds("condition.all_of", rule.condition.all_of, issues)
   validate_kinds("condition.any_of", rule.condition.any_of, issues)
   validate_kinds("condition.none_of", rule.condition.none_of, issues)
+  validate_condition_consistency(rule.condition, issues)
 
   issues
 }
