@@ -102,3 +102,36 @@ test "highest priority is stable on ties" {
     None => fail("expected a diagnosis")
   }
 }
+
+///|
+test "rule evaluation explains why a policy did not match" {
+  let rule = service_rule("SERVICE001", "service_unavailable", 10)
+  let facts = [fact("service_started", "E1")]
+
+  let evaluation = @core.inspect_policy_rule(rule, facts)
+  assert_eq(evaluation.rule_id, "SERVICE001")
+  assert_eq(evaluation.priority, 10)
+  assert_true(!evaluation.condition.matched)
+  assert_eq(evaluation.condition.matched_any.length(), 0)
+
+  match evaluation.diagnosis {
+    Some(_) => fail("non-matching rule must not produce a diagnosis")
+    None => ()
+  }
+}
+
+///|
+test "inspect policy rules preserves unmatched evaluations" {
+  let rules = [
+    service_rule("R1", "service_unavailable", 10),
+    service_rule("R2", "service_unavailable", 20),
+  ]
+  let facts = [fact("service_started", "E1")]
+
+  let evaluations = @core.inspect_policy_rules(rules, facts)
+  assert_eq(evaluations.length(), 2)
+  assert_eq(evaluations[0].rule_id, "R1")
+  assert_eq(evaluations[1].rule_id, "R2")
+  assert_true(!evaluations[0].condition.matched)
+  assert_true(!evaluations[1].condition.matched)
+}
