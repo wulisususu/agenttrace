@@ -11,7 +11,9 @@
 - CI 校验 `schema_version`、build/test 事实、category、severity、confidence、R001、Evidence 和 Suggested Action；
 - 静态 bundle 通过 HTTP smoke test 后作为 `agenttrace-visual-report` Actions artifact 上传；
 - 浏览器代码只负责展示，不重新判断故障类型；
-- 当前尚未把 artifact 宣称为公开 Live Demo；完整 Wrong Worktree A/B 场景、dirty-state 场景等仍未完成。
+- GitHub Pages Live Demo 已公开部署；
+- 展示采用双层信息架构：普通用户先看到“发生了什么 / AgentTrace 判断 / 下一步做什么”，开发者再展开机器字段、Evidence、HEAD、Worktree 与 CLI 复现命令；
+- 完整 Wrong Worktree A/B 场景、dirty-state 场景等仍未完成。
 
 ## 1. 目标
 
@@ -52,15 +54,22 @@ Repository / Worktree / Env / Build / Test
 
 ## 3. 首版界面信息
 
-Visual Report 首版优先展示以下内容。
+Visual Report 默认先服务第一次接触项目的普通用户，再提供开发者技术详情。首屏优先展示以下内容。
 
-### Summary
+### Plain-language Summary
+
+- 用户遇到的真实现象；
+- AgentTrace 的一句话判断；
+- 为什么现在不该盲目继续改代码；
+- 下一步最小验证动作。
+
+### Developer Details（折叠）
 
 - Diagnosis category；
 - Severity；
 - Confidence；
 - Rule IDs；
-- 一句话诊断摘要。
+- Repository / Build / Test 原始结构化事实。
 
 ### Evidence
 

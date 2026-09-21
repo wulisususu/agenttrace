@@ -124,7 +124,7 @@ jobs:
           trap 'kill "$server_pid"' EXIT
           sleep 1
 
-          curl --fail --silent http://127.0.0.1:4173/ | grep -Fq "AgentTrace 可视化诊断报告"
+          curl --fail --silent http://127.0.0.1:4173/ | grep -Fq "AI 编程报错了"
           curl --fail --silent http://127.0.0.1:4173/app.js | grep -Fq "dependency-environment.json"
           curl --fail --silent http://127.0.0.1:4173/app.js | grep -Fq "unexpected-branch.json"
           curl --fail --silent http://127.0.0.1:4173/app.js | grep -Fq "source-compile-error.json"

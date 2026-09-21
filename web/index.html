@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="AgentTrace 可视化诊断报告——基于真实 CLI JSON 展示可复现、可解释的工程故障诊断。" />
-  <title>AgentTrace 可视化诊断报告</title>
+  <meta name="description" content="AgentTrace：AI 编程失败时，先判断是代码、环境还是开发现场出了问题。" />
+  <title>AgentTrace｜先判断哪里坏了，再决定怎么修</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
@@ -14,122 +14,194 @@
         <span class="brand-mark" aria-hidden="true">AT</span>
         <span>
           <strong>AgentTrace</strong>
-          <small>可视化诊断报告</small>
+          <small>AI Coding 工程诊断</small>
         </span>
       </a>
       <div class="source-badge">
         <span class="source-dot" aria-hidden="true"></span>
-        数据来自真实 CLI JSON
+        真实诊断结果 · 非演示答案
       </div>
     </header>
 
     <main>
-      <nav class="case-switcher" aria-label="诊断案例">
-        <button class="case-tab is-active" type="button" data-case="dependency">
-          <span>案例 A</span>
-          依赖 / 测试环境故障
-        </button>
-        <button class="case-tab" type="button" data-case="branch">
-          <span>案例 B</span>
-          分支状态异常
-        </button>
-        <button class="case-tab" type="button" data-case="compile">
-          <span>案例 C</span>
-          源码编译错误
-        </button>
-      </nav>
-
-      <section class="hero panel">
-        <div>
-          <p class="eyebrow">可复现诊断</p>
-          <h1 id="diagnosis-title">正在载入诊断结果…</h1>
-          <p id="diagnosis-summary" class="hero-copy">
-            正在读取 AgentTrace 生成的结构化诊断结果。
-          </p>
-        </div>
-        <div class="hero-meta">
-          <div class="metric">
-            <span>严重程度</span>
-            <strong id="severity">—</strong>
-          </div>
-          <div class="metric">
-            <span>置信度</span>
-            <strong id="confidence">—</strong>
-          </div>
-          <div class="metric">
-            <span>诊断规则</span>
-            <strong id="rule-ids">—</strong>
-          </div>
+      <section class="intro">
+        <p class="eyebrow">先判断哪里坏了，再决定怎么修</p>
+        <h1>AI 编程报错了，<br />先别急着改代码。</h1>
+        <p class="intro-copy">
+          AgentTrace 会先检查代码、测试、依赖和当前开发现场，帮助你判断：
+          <strong>这次到底是代码真的写错了，还是环境 / 分支 / 依赖出了问题。</strong>
+        </p>
+        <div class="intro-note">
+          AI 负责“怎么修”，AgentTrace 先回答“究竟哪里坏了”。
         </div>
       </section>
 
+      <section class="scenario-section" aria-labelledby="scenario-title">
+        <div class="section-label-row">
+          <div>
+            <p class="eyebrow">三个真实案例</p>
+            <h2 id="scenario-title">点一个你最容易遇到的情况</h2>
+          </div>
+          <span class="plain-badge">不懂 Git 也能看</span>
+        </div>
+
+        <nav class="case-switcher" aria-label="诊断案例">
+          <button class="case-tab is-active" type="button" data-case="dependency">
+            <span class="case-number">01</span>
+            <strong>测试突然全红了</strong>
+            <small>代码可能没坏，先查环境</small>
+          </button>
+          <button class="case-tab" type="button" data-case="branch">
+            <span class="case-number">02</span>
+            <strong>AI 验收结果不对</strong>
+            <small>可能跑错了分支 / 工作目录</small>
+          </button>
+          <button class="case-tab" type="button" data-case="compile">
+            <span class="case-number">03</span>
+            <strong>编译器直接报错</strong>
+            <small>这次更可能真是代码问题</small>
+          </button>
+        </nav>
+      </section>
+
       <div id="error-state" class="error-state panel" hidden>
-        <strong>诊断数据尚未生成。</strong>
-        <p>请通过仓库中的 Visual Report 工作流生成页面数据，或按照项目文档中的 CLI 命令生成对应 JSON。</p>
+        <strong>诊断数据暂时没有加载出来。</strong>
+        <p>页面本身可以访问，但 CLI 生成的诊断 JSON 缺失或无法解析。</p>
       </div>
 
       <section id="report" hidden>
-        <div class="grid grid-3">
-          <article class="panel fact-card">
-            <p class="eyebrow">构建状态</p>
-            <strong id="build-status">—</strong>
-            <dl>
-              <div><dt>编译器</dt><dd id="build-compiler">—</dd></div>
-              <div><dt>退出码</dt><dd id="build-exit">—</dd></div>
-            </dl>
-          </article>
-
-          <article class="panel fact-card">
-            <p class="eyebrow">测试状态</p>
-            <strong id="test-status">—</strong>
-            <dl>
-              <div><dt>失败测试文件</dt><dd id="failed-suites">—</dd></div>
-              <div><dt>失败测试数</dt><dd id="failed-tests">—</dd></div>
-            </dl>
-          </article>
-
-          <article class="panel fact-card">
-            <p class="eyebrow">仓库状态</p>
-            <strong id="repo-branch">—</strong>
-            <dl>
-              <div><dt>HEAD</dt><dd id="repo-head">—</dd></div>
-              <div><dt>存在未提交改动</dt><dd id="repo-dirty">—</dd></div>
-            </dl>
-          </article>
-        </div>
-
-        <div class="grid grid-main">
-          <article class="panel">
-            <div class="section-heading">
-              <div>
-                <p class="eyebrow">诊断证据</p>
-                <h2>为什么 AgentTrace 会得出这个结论</h2>
-              </div>
-              <span id="evidence-count" class="count-badge">0 条证据</span>
-            </div>
-            <ol id="evidence-list" class="evidence-list"></ol>
-          </article>
-
-          <aside class="panel">
-            <p class="eyebrow">建议操作</p>
-            <h2>下一步应该验证什么</h2>
-            <ol id="suggested-checks" class="action-list"></ol>
-          </aside>
-        </div>
-
-        <article class="panel reproduce">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">本地复现</p>
-              <h2>用同样的输入重新运行此案例</h2>
-            </div>
-            <span id="schema-version" class="count-badge">schema —</span>
+        <section class="decision panel">
+          <div class="decision-copy">
+            <span class="decision-kicker" id="scenario-kicker">当前场景</span>
+            <h2 id="plain-title">正在读取诊断结果…</h2>
+            <p id="plain-summary"></p>
           </div>
-          <pre><code id="reproduce-command"></code></pre>
-          <p class="footnote">
-            本页面不会运行第二套诊断引擎；它只负责展示 Native CLI 实际输出的 JSON。
-          </p>
-        </article>
+          <div class="verdict">
+            <span>AgentTrace 判断</span>
+            <strong id="plain-verdict">—</strong>
+            <p id="plain-verdict-note"></p>
+          </div>
+        </section>
+
+        <section class="plain-grid">
+          <article class="panel plain-card">
+            <p class="eyebrow">发生了什么</p>
+            <div id="story-flow" class="story-flow"></div>
+          </article>
+
+          <article class="panel plain-card">
+            <p class="eyebrow">现在先做什么</p>
+            <h3 id="action-title">—</h3>
+            <ol id="plain-actions" class="plain-actions"></ol>
+          </article>
+        </section>
+
+        <section class="compare panel">
+          <div>
+            <span class="compare-label">如果没有 AgentTrace</span>
+            <p id="without-agenttrace">—</p>
+          </div>
+          <span class="compare-arrow" aria-hidden="true">→</span>
+          <div class="compare-good">
+            <span class="compare-label">使用 AgentTrace</span>
+            <p id="with-agenttrace">—</p>
+          </div>
+        </section>
+
+        <details class="technical panel">
+          <summary>
+            <span>
+              <strong>查看开发者详情 / 技术证据</strong>
+              <small>R001、R002、R004、HEAD、Worktree、CLI 命令都在这里</small>
+            </span>
+            <span class="summary-action">展开</span>
+          </summary>
+
+          <div class="technical-body">
+            <div class="technical-header">
+              <div>
+                <p class="eyebrow">机器可读诊断</p>
+                <h2 id="technical-title">—</h2>
+              </div>
+              <div class="hero-meta">
+                <div class="metric">
+                  <span>严重程度</span>
+                  <strong id="severity">—</strong>
+                </div>
+                <div class="metric">
+                  <span>置信度</span>
+                  <strong id="confidence">—</strong>
+                </div>
+                <div class="metric">
+                  <span>诊断规则</span>
+                  <strong id="rule-ids">—</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-3">
+              <article class="fact-card">
+                <p class="eyebrow">构建状态</p>
+                <strong id="build-status">—</strong>
+                <dl>
+                  <div><dt>编译器</dt><dd id="build-compiler">—</dd></div>
+                  <div><dt>退出码</dt><dd id="build-exit">—</dd></div>
+                </dl>
+              </article>
+
+              <article class="fact-card">
+                <p class="eyebrow">测试状态</p>
+                <strong id="test-status">—</strong>
+                <dl>
+                  <div><dt>失败测试文件</dt><dd id="failed-suites">—</dd></div>
+                  <div><dt>失败测试数</dt><dd id="failed-tests">—</dd></div>
+                </dl>
+              </article>
+
+              <article class="fact-card">
+                <p class="eyebrow">仓库状态</p>
+                <strong id="repo-branch">—</strong>
+                <dl>
+                  <div><dt>HEAD</dt><dd id="repo-head">—</dd></div>
+                  <div><dt>存在未提交改动</dt><dd id="repo-dirty">—</dd></div>
+                </dl>
+              </article>
+            </div>
+
+            <div class="grid grid-main">
+              <article class="technical-section">
+                <div class="section-heading">
+                  <div>
+                    <p class="eyebrow">诊断证据</p>
+                    <h2>AgentTrace 为什么这样判断</h2>
+                  </div>
+                  <span id="evidence-count" class="count-badge">0 条证据</span>
+                </div>
+                <ol id="evidence-list" class="evidence-list"></ol>
+              </article>
+
+              <aside class="technical-section">
+                <p class="eyebrow">规则给出的验证动作</p>
+                <h2>最小成本确认下一步</h2>
+                <ol id="suggested-checks" class="action-list"></ol>
+              </aside>
+            </div>
+
+            <article class="reproduce">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">本地复现</p>
+                  <h2>用真实 CLI 重跑同一个案例</h2>
+                </div>
+                <span id="schema-version" class="count-badge">schema —</span>
+              </div>
+              <pre><code id="reproduce-command"></code></pre>
+              <p class="footnote">
+                页面不运行第二套诊断引擎；这里展示的结论来自 Native CLI 实际输出的 JSON。
+              </p>
+            </article>
+          </div>
+        </details>
       </section>
     </main>
   </div>

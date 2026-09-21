@@ -1,9 +1,28 @@
 const CASES = {
   dependency: {
     dataUrl: "./data/dependency-environment.json",
-    title: "依赖 / 测试环境故障",
+    kicker: "测试突然全红，但编译其实通过了",
+    title: "先别回滚代码，先检查测试环境",
     summary:
-      "编译已经通过，但大量测试以同一种方式失败。现有证据更支持先检查测试依赖或测试环境，而不是直接回滚源码。",
+      "27 个测试文件、155 个测试一起失败，看起来像“代码全坏了”。但编译层是正常的，而且失败原因高度重复。",
+    verdict: "更可能是测试环境 / 依赖问题",
+    verdictNote: "现在直接改源码，很可能是在修错东西。",
+    actionTitle: "先验证环境，再决定要不要碰代码",
+    story: [
+      ["表面现象", "大量测试同时失败"],
+      ["AgentTrace 交叉检查", "编译通过，错误高度重复"],
+      ["最终判断", "优先检查测试依赖 / setup"],
+    ],
+    actions: [
+      "确认测试依赖有没有正确安装",
+      "确认测试 setup / 初始化文件是否被正确加载",
+      "环境验证后再重跑测试，最后才考虑回滚源码",
+    ],
+    without:
+      "看到 155 个测试失败 → AI 继续改代码 → 仍然失败 → 继续改。",
+    with:
+      "先检查构建与重复错误 → 发现代码未必有问题 → 把排查方向切到环境。",
+    technicalTitle: "dependency_environment_error",
     reproduce: [
       "moon run cmd/main inspect . \\",
       "  --log fixtures/logs/vitest-missing-matcher.txt \\",
@@ -13,9 +32,28 @@ const CASES = {
   },
   branch: {
     dataUrl: "./data/unexpected-branch.json",
-    title: "当前分支与任务预期不一致",
+    kicker: "AI 验收结果和你预期的不一样",
+    title: "先确认 AI 是不是在正确的分支上验收",
     summary:
-      "仓库本身可以正常读取，但当前分支不符合调用方显式声明的任务预期。继续验收前，应先确认当前 Worktree 和分支是否就是本次任务的执行现场。",
+      "代码仓库本身能正常读取，但当前分支和任务明确要求的分支不一致。继续跑测试之前，应该先确认当前工作目录是不是本次任务真正的执行现场。",
+    verdict: "先别继续验收，当前开发现场不可信",
+    verdictNote: "问题可能不是代码，而是 AI 在错误的分支 / Worktree 上检查结果。",
+    actionTitle: "先把“在哪儿验收”确认清楚",
+    story: [
+      ["任务预期", "应该在指定任务分支验收"],
+      ["AgentTrace 发现", "当前实际分支与预期不一致"],
+      ["最终判断", "先确认 Worktree / 分支，再继续测试"],
+    ],
+    actions: [
+      "确认当前 Worktree 是否就是本次任务的工作目录",
+      "对比当前分支、HEAD 和任务预期",
+      "确认现场正确以后，再继续跑测试或让 AI 修改代码",
+    ],
+    without:
+      "验收不对 → 以为代码有问题 → AI 在错误分支继续改 → 结果越来越乱。",
+    with:
+      "先核对分支和工作目录 → 发现执行现场不对 → 切回正确现场再验收。",
+    technicalTitle: "worktree_state_error",
     reproduce: [
       "moon run cmd/main inspect . \\",
       "  --expected-branch __agenttrace_expected_branch__ \\",
@@ -24,9 +62,28 @@ const CASES = {
   },
   compile: {
     dataUrl: "./data/source-compile-error.json",
-    title: "源码编译错误",
+    kicker: "这次编译器直接指出了源码位置",
+    title: "这次真的更像是代码写错了",
     summary:
-      "编译器以非零状态退出，并给出了明确的 TypeScript 源码位置。此时应优先检查源码类型或语法问题，而不是先修改依赖环境。",
+      "编译器非零退出，而且给出了明确的 TypeScript 源码位置和错误码。现有证据已经足够把排查重点放回源码，而不是先折腾依赖环境。",
+    verdict: "优先修源码，再重新编译",
+    verdictNote: "这是 AgentTrace 用来和“环境故障”做区分的另一类结果。",
+    actionTitle: "从第一个明确的源码错误开始",
+    story: [
+      ["编译结果", "编译器直接失败"],
+      ["AgentTrace 发现", "存在明确源码位置与 TS2322"],
+      ["最终判断", "优先处理源码类型 / 语法问题"],
+    ],
+    actions: [
+      "先看第一个带源码位置的编译错误",
+      "只做针对性的源码修复",
+      "重新编译；没有证据时不要先改依赖环境",
+    ],
+    without:
+      "看到项目失败 → 不知道是代码还是环境 → 依赖、配置、源码一起乱改。",
+    with:
+      "编译器证据明确指向源码 → 把排查范围缩小 → 先修真正相关的代码。",
+    technicalTitle: "build_compile_error",
     reproduce: [
       "moon run cmd/main inspect . \\",
       "  --build-log fixtures/logs/tsc-type-error.txt \\",
@@ -37,26 +94,10 @@ const CASES = {
 };
 
 const TEXT = {
-  severity: {
-    error: "错误",
-    warning: "警告",
-    info: "信息",
-    blocking: "阻塞",
-  },
-  confidence: {
-    high: "高",
-    medium: "中",
-    low: "低",
-  },
-  status: {
-    pass: "通过",
-    fail: "失败",
-    unknown: "未知",
-  },
-  boolean: {
-    true: "是",
-    false: "否",
-  },
+  severity: { error: "错误", warning: "警告", info: "信息", blocking: "阻塞" },
+  confidence: { high: "高", medium: "中", low: "低" },
+  status: { pass: "通过", fail: "失败", unknown: "未知" },
+  boolean: { true: "是", false: "否" },
   kind: {
     compile_result: "构建结果",
     repeated_error_signature: "重复错误签名",
@@ -112,7 +153,13 @@ const TEXT = {
 const byId = (id) => document.getElementById(id);
 
 function setText(id, value) {
-  byId(id).textContent = value ?? "—";
+  const node = byId(id);
+  if (node) node.textContent = value ?? "—";
+}
+
+function translate(map, value, fallback = value) {
+  if (value === undefined || value === null || value === "") return "—";
+  return map[value] ?? fallback;
 }
 
 function shortHead(value) {
@@ -120,9 +167,39 @@ function shortHead(value) {
   return value.length > 12 ? value.slice(0, 12) : value;
 }
 
-function translate(map, value, fallback = value) {
-  if (value === undefined || value === null || value === "") return "—";
-  return map[value] ?? fallback;
+function renderStory(items) {
+  const root = byId("story-flow");
+  root.replaceChildren();
+
+  items.forEach(([label, value], index) => {
+    const item = document.createElement("div");
+    item.className = "story-step";
+
+    const number = document.createElement("span");
+    number.className = "story-number";
+    number.textContent = String(index + 1);
+
+    const body = document.createElement("div");
+    const labelNode = document.createElement("small");
+    labelNode.textContent = label;
+    const valueNode = document.createElement("strong");
+    valueNode.textContent = value;
+
+    body.append(labelNode, valueNode);
+    item.append(number, body);
+    root.append(item);
+  });
+}
+
+function renderPlainActions(items) {
+  const list = byId("plain-actions");
+  list.replaceChildren();
+
+  items.forEach((text) => {
+    const item = document.createElement("li");
+    item.textContent = text;
+    list.append(item);
+  });
 }
 
 function renderEvidence(items) {
@@ -167,8 +244,18 @@ function renderReport(data, meta) {
   const diagnosis = data.diagnoses?.[0];
   if (!diagnosis) throw new Error("可视化报告至少需要一条诊断结果");
 
-  setText("diagnosis-title", meta.title);
-  setText("diagnosis-summary", meta.summary);
+  setText("scenario-kicker", meta.kicker);
+  setText("plain-title", meta.title);
+  setText("plain-summary", meta.summary);
+  setText("plain-verdict", meta.verdict);
+  setText("plain-verdict-note", meta.verdictNote);
+  setText("action-title", meta.actionTitle);
+  setText("without-agenttrace", meta.without);
+  setText("with-agenttrace", meta.with);
+  renderStory(meta.story);
+  renderPlainActions(meta.actions);
+
+  setText("technical-title", meta.technicalTitle);
   setText("severity", translate(TEXT.severity, diagnosis.severity));
   setText("confidence", translate(TEXT.confidence, diagnosis.confidence));
   setText("rule-ids", diagnosis.rule_ids?.join(", ") || "—");
@@ -196,7 +283,6 @@ function renderReport(data, meta) {
 
   renderEvidence(diagnosis.evidence || []);
   renderActions(diagnosis.suggested_checks || []);
-
   setText("schema-version", `schema ${data.schema_version || "—"}`);
   setText("reproduce-command", meta.reproduce);
 
@@ -217,11 +303,6 @@ async function loadCase(caseId, updateUrl = true) {
   const meta = CASES[resolvedId];
 
   setActiveCase(resolvedId);
-  setText("diagnosis-title", "正在载入诊断结果…");
-  setText(
-    "diagnosis-summary",
-    "正在读取 AgentTrace 生成的结构化诊断结果。",
-  );
   byId("report").hidden = true;
   byId("error-state").hidden = true;
 
@@ -238,11 +319,6 @@ async function loadCase(caseId, updateUrl = true) {
     renderReport(data, meta);
   } catch (error) {
     console.error(error);
-    setText("diagnosis-title", "可视化报告数据不完整");
-    setText(
-      "diagnosis-summary",
-      "页面本身已经载入，但由 CLI 生成的诊断 JSON 缺失或无法解析。",
-    );
     byId("error-state").hidden = false;
   }
 }
