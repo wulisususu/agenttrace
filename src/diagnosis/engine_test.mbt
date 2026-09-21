@@ -60,3 +60,50 @@ test "R001 does not diagnose passing tests" {
 
   assert_eq(diagnosis.category, "unknown")
 }
+
+///|
+test "R002 reports top-level package manager ambiguity" {
+  let environment = @environment.detect_environment_from_names([
+    "package.json",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "node_modules",
+  ])
+  let diagnosis = @diagnosis.diagnose_r002(environment)
+
+  assert_eq(diagnosis.category, "package_manager_ambiguity")
+  assert_eq(diagnosis.severity, "warning")
+  assert_eq(diagnosis.confidence, "medium")
+  assert_eq(diagnosis.rule_ids.length(), 1)
+  assert_eq(diagnosis.rule_ids[0], "R002")
+  assert_eq(diagnosis.evidence.length(), 2)
+  assert_eq(diagnosis.evidence[0].source, "environment")
+  assert_eq(diagnosis.suggested_checks.length(), 3)
+}
+
+///|
+test "R002 does not confuse two npm lockfiles with two package managers" {
+  let environment = @environment.detect_environment_from_names([
+    "package.json",
+    "package-lock.json",
+    "npm-shrinkwrap.json",
+  ])
+  let diagnosis = @diagnosis.diagnose_r002(environment)
+
+  assert_eq(environment.package_managers.length(), 1)
+  assert_eq(diagnosis.category, "unknown")
+}
+
+///|
+test "R002 leaves a valid Yarn PnP layout alone" {
+  let environment = @environment.detect_environment_from_names([
+    "package.json",
+    "yarn.lock",
+    ".pnp.cjs",
+    ".yarnrc.yml",
+  ])
+  let diagnosis = @diagnosis.diagnose_r002(environment)
+
+  assert_eq(diagnosis.category, "unknown")
+  assert_eq(diagnosis.evidence.length(), 0)
+}
