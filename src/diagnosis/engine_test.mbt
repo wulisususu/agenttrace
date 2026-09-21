@@ -98,6 +98,53 @@ test "R002 does not diagnose a successful compiler run" {
 }
 
 ///|
+test "R003 diagnoses bounded explicit assertion failures" {
+  let log =
+    #| RUN  v3.2.4 D:/repo
+    #|
+    #|AssertionError: expected 3 to be 4 // Object.is equality
+    #|
+    #|Test Files 1 failed (1)
+    #|Tests 1 failed | 3 passed (4)
+  let observation = @testlog.parse_vitest(log)
+  let diagnosis = @diagnosis.diagnose_r003(observation)
+
+  assert_eq(diagnosis.category, "test_assertion_failure")
+  assert_eq(diagnosis.severity, "error")
+  assert_eq(diagnosis.confidence, "high")
+  assert_eq(diagnosis.rule_ids.length(), 1)
+  assert_eq(diagnosis.rule_ids[0], "R003")
+  assert_eq(diagnosis.evidence.length(), 2)
+}
+
+///|
+test "R003 does not diagnose widespread assertion failures conservatively" {
+  let log =
+    #|AssertionError: expected 3 to be 4
+    #|Test Files 10 failed (10)
+    #|Tests 20 failed (20)
+  let observation = @testlog.parse_vitest(log)
+  let diagnosis = @diagnosis.diagnose_r003(observation)
+
+  assert_eq(diagnosis.category, "unknown")
+}
+
+///|
+test "R003 does not confuse missing matcher setup failure with assertion failure" {
+  let log =
+    #|AssertionError: expected setup to load
+    #|Error: Invalid Chai property: toBeInTheDocument
+    #|Error: Invalid Chai property: toBeInTheDocument
+    #|Test Files 2 failed (2)
+    #|Tests 2 failed (2)
+  let observation = @testlog.parse_vitest(log)
+  let diagnosis = @diagnosis.diagnose_r003(observation)
+
+  assert_eq(diagnosis.category, "unknown")
+  assert_eq(diagnosis.evidence.length(), 0)
+}
+
+///|
 test "R005 reports top-level package manager ambiguity" {
   let environment = @environment.detect_environment_from_names([
     "package.json",

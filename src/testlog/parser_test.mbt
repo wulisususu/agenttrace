@@ -15,6 +15,7 @@ test "parse Vitest missing matcher failure" {
   assert_eq(observation.status, "fail")
   assert_eq(observation.failed_suites, 27)
   assert_eq(observation.failed_tests, 155)
+  assert_eq(observation.assertion_failures, 0)
   assert_eq(observation.error_signatures.length(), 1)
   assert_eq(
     observation.error_signatures[0].message,
@@ -35,6 +36,7 @@ test "parse passing Vitest summary" {
   assert_eq(observation.status, "pass")
   assert_eq(observation.failed_suites, 0)
   assert_eq(observation.failed_tests, 0)
+  assert_eq(observation.assertion_failures, 0)
   assert_eq(observation.error_signatures.length(), 0)
 }
 
@@ -57,4 +59,22 @@ test "parse missing matcher from CRLF log" {
   assert_eq(observation.failed_tests, 1)
   assert_eq(observation.error_signatures.length(), 1)
   assert_eq(observation.error_signatures[0].occurrences, 1)
+}
+
+///|
+test "parse explicit Vitest assertion failures" {
+  let log =
+    #| RUN  v3.2.4 D:/repo
+    #|
+    #|AssertionError: expected 3 to be 4 // Object.is equality
+    #|
+    #|Test Files 1 failed (1)
+    #|Tests 1 failed | 3 passed (4)
+  let observation = @testlog.parse_vitest(log)
+
+  assert_eq(observation.status, "fail")
+  assert_eq(observation.failed_suites, 1)
+  assert_eq(observation.failed_tests, 1)
+  assert_eq(observation.assertion_failures, 1)
+  assert_eq(observation.error_signatures.length(), 0)
 }
