@@ -204,7 +204,19 @@ Reporter / App
 - [x] Native CLI
 - [x] Visual Report 与 GitHub Pages Demo
 
-当前重点已经从“继续增加产品功能”调整为：**扩展通用基础库能力与可复用适配器。**
+当前重点已经从“继续增加产品功能”调整为：**把 Core 做成即使脱离所有参考应用，也能独立成立的 MoonBit 基础库。**
+
+Core 当前额外具备：
+
+- [x] `Condition { all_of / any_of / none_of }`
+- [x] `PolicyRule` 与 priority
+- [x] `evaluate_policy_rule` / `evaluate_policy_rules`
+- [x] `evaluate_highest_priority`
+- [x] Evidence 查询 API
+- [x] Rule Validation
+- [x] duplicate rule id 检查
+- [x] 外部 package contract test
+- [x] 两个与具体开发工具无关的独立示例
 
 ---
 
@@ -336,16 +348,15 @@ agenttrace/
 
 ## 后续基础库路线
 
-下一阶段优先扩展可复用能力，而不是堆叠产品界面：
+下一阶段仍然优先扩展可复用能力，而不是堆叠产品界面：
 
 - 通用 error signature / normalization
-- 可组合 Condition
-- Rule priority
+- 更丰富的组合条件
+- RuleSet / conflict policy
 - Evidence metadata
-- 更稳定的 DiagnosticReport schema
-- Parser / Collector adapter interface
+- Core serializer / stable schema
 - WASM 可复用核心
-- 更多与具体工具无关的测试 fixture
+- property-based / fuzz 风格边界测试
 
 ---
 
