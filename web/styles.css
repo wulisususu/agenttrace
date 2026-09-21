@@ -94,6 +94,45 @@ body::before {
   box-shadow: 0 0 0 4px rgba(116, 211, 155, 0.12);
 }
 
+.case-switcher {
+  display: flex;
+  gap: 10px;
+  margin: 0 0 18px;
+  overflow-x: auto;
+  padding: 2px;
+}
+
+.case-tab {
+  appearance: none;
+  min-width: 190px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: rgba(15, 20, 28, 0.72);
+  color: var(--muted);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
+}
+
+.case-tab span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.case-tab:hover,
+.case-tab.is-active {
+  border-color: rgba(137, 169, 255, 0.42);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
 .panel {
   border: 1px solid var(--line);
   border-radius: 18px;
