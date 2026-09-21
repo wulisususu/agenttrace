@@ -10,6 +10,7 @@ pub(all) struct TestObservation {
   status : String
   failed_suites : Int
   failed_tests : Int
+  assertion_failures : Int
   error_signatures : Array[ErrorSignature]
 }
 
@@ -40,11 +41,13 @@ fn is_missing_matcher_line(line : StringView) -> Bool {
 pub fn parse_vitest(log : String) -> TestObservation {
   let mut failed_suites = 0
   let mut failed_tests = 0
+  let mut assertion_failures = 0
   let mut missing_matcher_occurrences = 0
   let mut saw_summary = false
 
   for line in log.split("\n") {
     let words = non_empty_words(line)
+    let text = line.to_owned()
 
     if words.length() >= 4 &&
       words[0] == "Test" &&
@@ -63,6 +66,10 @@ pub fn parse_vitest(log : String) -> TestObservation {
       if words[2] == "failed" {
         failed_tests = parse_count(words[1])
       }
+    }
+
+    if text.contains("AssertionError:") {
+      assertion_failures = assertion_failures + 1
     }
 
     if is_missing_matcher_line(line) {
@@ -91,6 +98,7 @@ pub fn parse_vitest(log : String) -> TestObservation {
     status,
     failed_suites,
     failed_tests,
+    assertion_failures,
     error_signatures,
   }
 }

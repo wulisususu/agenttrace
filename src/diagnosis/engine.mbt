@@ -120,6 +120,49 @@ pub fn diagnose_r002(
 }
 
 ///|
+pub fn diagnose_r003(
+  observation : @testlog.TestObservation,
+) -> Diagnosis {
+  let repeated_matcher = missing_matcher_occurrences(observation)
+
+  if observation.status == "fail" &&
+    observation.failed_suites >= 1 &&
+    observation.failed_suites <= 3 &&
+    observation.failed_tests >= 1 &&
+    observation.failed_tests <= 5 &&
+    observation.assertion_failures >= 1 &&
+    repeated_matcher == 0 {
+    {
+      category: "test_assertion_failure",
+      severity: "error",
+      confidence: "high",
+      rule_ids: ["R003"],
+      evidence: [
+        {
+          id: "E-R003-RUNNER-SUMMARY",
+          kind: "test_summary",
+          message: "Vitest completed with a bounded set of failed tests",
+          source: "testlog",
+        },
+        {
+          id: "E-R003-ASSERTION",
+          kind: "assertion_failure",
+          message: "At least one explicit assertion failure was observed",
+          source: "testlog",
+        },
+      ],
+      suggested_checks: [
+        "inspect the first assertion diff and its expected value",
+        "rerun the smallest affected test target",
+        "compare the failing behavior with the recent source change",
+      ],
+    }
+  } else {
+    unknown_diagnosis()
+  }
+}
+
+///|
 pub fn diagnose_r005(
   environment : @environment.EnvironmentSnapshot,
 ) -> Diagnosis {
