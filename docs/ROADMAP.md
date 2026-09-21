@@ -89,9 +89,36 @@
 - GitHub Actions；
 - 其他 CI 日志。
 
-### Web/WASM
+### Web/WASM Playground
 
-将纯解析与诊断核心复用到 Web Dashboard。
+在 Native CLI 稳定后，为项目提供一个无需安装即可体验的 Web Playground，用于降低首次体验和评审演示门槛。
+
+目标：
+
+- 将可纯函数化的 MoonBit 核心（model、log parser、diagnosis engine、serializer）复用到 WASM；
+- 提供内置故障场景，例如 Worktree 状态异常、重复测试失败、依赖环境异常和多 Agent 修改冲突；
+- 用户可以在浏览器中选择场景、运行诊断，并查看 Evidence、Diagnosis、Suggested Action 等结构化结果；
+- 支持加载脱敏后的日志或预构造 fixture，便于展示诊断能力；
+- Web 页面保持静态部署友好，可直接作为项目 Live Demo 发布，不依赖常驻后端服务；
+- Web Playground 不替代 Native CLI，也不声称能够在普通浏览器中完整扫描用户本地 Git 仓库。
+
+建议形态：
+
+```text
+                    AgentTrace Core
+                       MoonBit
+                          │
+             ┌────────────┴────────────┐
+             │                         │
+          Native                    WASM
+             │                         │
+             ▼                         ▼
+      agenttrace CLI            Web Playground
+      real repository           fixtures / logs
+        inspection               interactive demo
+```
+
+完成标准：访问公开 Demo 后，不安装 AgentTrace、不准备真实故障仓库，也能在数步操作内理解 AgentTrace 的诊断输入、证据链和输出结果。
 
 ### Optional AI Explainer
 
