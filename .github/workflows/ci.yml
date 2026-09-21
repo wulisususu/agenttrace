@@ -99,3 +99,4 @@ jobs:
           if ($diagnosis -notmatch '"category":"test_assertion_failure"') {
             throw "analyze-log JSON did not contain the expected diagnosis"
           }
+          exit 0
