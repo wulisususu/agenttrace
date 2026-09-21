@@ -67,11 +67,11 @@ jobs:
 
           test "$environment_code" -eq 1
           printf '%s' "$environment_case" | grep -Fq '"category":"dependency_environment_error"'
-          printf '%s' "$environment_case" | grep -Fq '"rule_ids":\["R001"\]'
+          printf '%s' "$environment_case" | grep -Fq '"rule_ids":["R001"]'
 
           test "$compile_code" -eq 1
           printf '%s' "$compile_case" | grep -Fq '"category":"build_compile_error"'
-          printf '%s' "$compile_case" | grep -Fq '"rule_ids":\["R002"\]'
+          printf '%s' "$compile_case" | grep -Fq '"rule_ids":["R002"]'
 
   windows:
     runs-on: windows-latest
