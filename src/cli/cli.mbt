@@ -149,6 +149,8 @@ pub fn parse_cli(argv : ArrayView[String]) -> CliRequest {
       log: "",
       build_log: "",
       build_exit_code: -1,
+      expected_branch: "",
+      require_clean: false,
       error: "",
     }
   }
@@ -212,6 +214,8 @@ pub fn parse_cli(argv : ArrayView[String]) -> CliRequest {
           log: "",
           build_log: "",
           build_exit_code: -1,
+          expected_branch: "",
+          require_clean: false,
           error: "",
         }
       } else {
