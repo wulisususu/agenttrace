@@ -30,10 +30,18 @@ fn parse_count(text : String) -> Int {
 }
 
 ///|
+fn is_missing_matcher_line(line : StringView) -> Bool {
+  let text = line.to_owned()
+  text == "Error: Invalid Chai property: toBeInTheDocument" ||
+  text == "Error: Invalid Chai property: toBeInTheDocument\r"
+}
+
+///|
 pub fn parse_vitest(log : String) -> TestObservation {
   let mut failed_suites = 0
   let mut failed_tests = 0
   let mut missing_matcher_occurrences = 0
+  let mut saw_summary = false
 
   for line in log.split("\n") {
     let words = non_empty_words(line)
@@ -41,17 +49,23 @@ pub fn parse_vitest(log : String) -> TestObservation {
     if words.length() >= 4 &&
       words[0] == "Test" &&
       words[1] == "Files" &&
-      words[3] == "failed" {
-      failed_suites = parse_count(words[2])
+      (words[3] == "failed" || words[3] == "passed") {
+      saw_summary = true
+      if words[3] == "failed" {
+        failed_suites = parse_count(words[2])
+      }
     }
 
     if words.length() >= 3 &&
       words[0] == "Tests" &&
-      words[2] == "failed" {
-      failed_tests = parse_count(words[1])
+      (words[2] == "failed" || words[2] == "passed") {
+      saw_summary = true
+      if words[2] == "failed" {
+        failed_tests = parse_count(words[1])
+      }
     }
 
-    if line.to_owned() == "Error: Invalid Chai property: toBeInTheDocument" {
+    if is_missing_matcher_line(line) {
       missing_matcher_occurrences = missing_matcher_occurrences + 1
     }
   }
@@ -66,8 +80,10 @@ pub fn parse_vitest(log : String) -> TestObservation {
 
   let status = if failed_suites > 0 || failed_tests > 0 {
     "fail"
-  } else {
+  } else if saw_summary {
     "pass"
+  } else {
+    "unknown"
   }
 
   {
