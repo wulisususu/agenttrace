@@ -77,7 +77,7 @@
 - [x] README 中当前标记为已实现的 CLI 命令可运行
 - [x] README 中核心示例由实际 CLI / CI 验证
 - [x] 不把规划功能写成已实现
-- [ ] 安装步骤经过空环境复测
+- [x] 安装步骤经过 Ubuntu / Windows fresh-clone 自动复测
 - [x] 测试与 Demo 可复现
 
 ## J. 提交质量

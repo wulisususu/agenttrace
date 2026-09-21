@@ -1,0 +1,100 @@
+name: fresh-install
+
+on:
+  push:
+  workflow_dispatch:
+
+env:
+  MOONBIT_VERSION: 0.10.14+7d59c7ec9
+
+jobs:
+  ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install MoonBit
+        shell: bash
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s "$MOONBIT_VERSION"
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Clone current commit into a fresh directory
+        shell: bash
+        run: |
+          git clone "https://github.com/${GITHUB_REPOSITORY}.git" fresh-agenttrace
+          cd fresh-agenttrace
+          git checkout --detach "$GITHUB_SHA"
+          git status --short
+
+      - name: Reproduce documented source setup
+        shell: bash
+        working-directory: fresh-agenttrace
+        run: |
+          moon version --all
+          moon update
+          moon check --target native --deny-warn
+          moon test --target native
+          moon build --target native
+
+      - name: Verify fresh CLI execution
+        shell: bash
+        working-directory: fresh-agenttrace
+        run: |
+          output="$(moon run cmd/main version)"
+          printf '%s\n' "$output"
+          test "$output" = "AgentTrace 0.1.0-dev"
+
+          inspection="$(moon run cmd/main inspect . --format json)"
+          code=$?
+          printf '%s\n' "$inspection"
+          test "$code" -eq 0
+          printf '%s' "$inspection" | grep -Fq '"schema_version":"0.1"'
+          printf '%s' "$inspection" | grep -Fq '"repository":'
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - name: Install MoonBit
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+          $env:MOONBIT_INSTALL_VERSION = $env:MOONBIT_VERSION
+          irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
+          "$HOME\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Clone current commit into a fresh directory
+        shell: pwsh
+        run: |
+          git clone "https://github.com/$env:GITHUB_REPOSITORY.git" fresh-agenttrace
+          Set-Location fresh-agenttrace
+          git checkout --detach $env:GITHUB_SHA
+          git status --short
+
+      - name: Reproduce documented source setup
+        shell: pwsh
+        working-directory: fresh-agenttrace
+        run: |
+          moon version --all
+          moon update
+          moon check --target native --deny-warn
+          moon test --target native
+          moon build --target native
+
+      - name: Verify fresh CLI execution
+        shell: pwsh
+        working-directory: fresh-agenttrace
+        run: |
+          $output = (moon run cmd/main version | Out-String).Trim()
+          if ($LASTEXITCODE -ne 0 -or $output -ne "AgentTrace 0.1.0-dev") {
+            throw "fresh version verification failed"
+          }
+
+          $inspection = (moon run cmd/main inspect . --format json | Out-String).Trim()
+          $code = $LASTEXITCODE
+          Write-Output $inspection
+          if ($code -ne 0) {
+            throw "fresh inspect returned exit code $code"
+          }
+          if ($inspection -notmatch '"schema_version":"0.1"' -or $inspection -notmatch '"repository":') {
+            throw "fresh inspect JSON verification failed"
+          }
+          exit 0

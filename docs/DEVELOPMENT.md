@@ -32,6 +32,20 @@ moon fmt
 moon build --target native
 ```
 
+## 2.1 Fresh-install 验证
+
+普通 CI checkout 用于持续测试；另外的 `fresh-install` workflow 用于验证文档里的源码安装路径。
+
+它不复用工作区产物，而是在 GitHub hosted runner 上：
+
+1. 显式安装固定 MoonBit 工具链；
+2. 在新的目录重新 `git clone` 仓库；
+3. checkout 当前 push 的精确 commit；
+4. 执行 `moon update`、check、test、native build；
+5. 实际运行 `version` 与 `inspect`。
+
+因此 README 的“从零安装与验证”不是只靠开发者本机经验维护，而有独立的 Ubuntu / Windows 自动化回归。
+
 ## 3. CLI 架构约定
 
 Native CLI 按以下原则组织：
