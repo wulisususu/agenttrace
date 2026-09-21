@@ -10,7 +10,7 @@ pub(all) struct DiagnosticReport {
 ///|
 fn worktree_to_json(worktree : @git.WorktreeSnapshot) -> Json {
   {
-    "path": worktree.path,
+    "path": redact_path(worktree.path),
     "head": worktree.head,
     "branch": worktree.branch,
     "detached": worktree.detached,
@@ -27,7 +27,7 @@ fn repository_to_json(repository : @git.RepositorySnapshot) -> Json {
   }
 
   {
-    "root": repository.root,
+    "root": redact_path(repository.root),
     "branch": repository.branch,
     "head": repository.head,
     "is_dirty": repository.is_dirty,
@@ -49,7 +49,7 @@ fn environment_to_json(environment : @environment.EnvironmentSnapshot) -> Json {
 ///|
 fn build_error_to_json(error : @buildlog.BuildError) -> Json {
   {
-    "file": error.file,
+    "file": redact_path(error.file),
     "line": error.line,
     "column": error.column,
     "code": error.code,
@@ -133,7 +133,7 @@ fn list_text(values : Array[String]) -> String {
 ///|
 pub fn render_report_text(report : DiagnosticReport) -> String {
   let mut output =
-    "AgentTrace\n\nRepository\n  Root: \{report.repository.root}\n  Branch: \{report.repository.branch}\n  HEAD: \{report.repository.head}\n  Dirty: \{report.repository.is_dirty}\n  Changed files: \{report.repository.changed_files.length()}\n  Worktrees: \{report.repository.worktrees.length()}\n"
+    "AgentTrace\n\nRepository\n  Root: \{redact_path(report.repository.root)}\n  Branch: \{report.repository.branch}\n  HEAD: \{report.repository.head}\n  Dirty: \{report.repository.is_dirty}\n  Changed files: \{report.repository.changed_files.length()}\n  Worktrees: \{report.repository.worktrees.length()}\n"
 
   output = output +
     "\nEnvironment\n  Package managers: \{list_text(report.environment.package_managers)}\n  Lockfiles: \{list_text(report.environment.lockfiles)}\n  Dependency markers: \{list_text(report.environment.dependency_markers)}\n"
