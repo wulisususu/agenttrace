@@ -24,7 +24,7 @@
 ## C. 核心模型
 
 - [x] RepositorySnapshot
-- [ ] EnvironmentSnapshot
+- [x] EnvironmentSnapshot
 - [x] TestObservation
 - [x] Evidence
 - [x] Diagnosis
@@ -51,7 +51,7 @@
 - [x] Git branch
 - [x] dirty state
 - [x] Worktree 信息
-- [ ] lockfile 信号
+- [x] lockfile 信号
 - [x] Windows 路径测试
 
 ## G. Reporter
