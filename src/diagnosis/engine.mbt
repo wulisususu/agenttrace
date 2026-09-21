@@ -81,3 +81,39 @@ pub fn diagnose_r001(
     unknown_diagnosis()
   }
 }
+
+///|
+pub fn diagnose_r002(
+  environment : @environment.EnvironmentSnapshot,
+) -> Diagnosis {
+  if environment.package_managers.length() >= 2 &&
+    environment.lockfiles.length() >= 2 {
+    {
+      category: "package_manager_ambiguity",
+      severity: "warning",
+      confidence: "medium",
+      rule_ids: ["R002"],
+      evidence: [
+        {
+          id: "E-R002-MULTIPLE-MANAGERS",
+          kind: "package_manager_signal",
+          message: "Top-level lockfiles indicate multiple package managers",
+          source: "environment",
+        },
+        {
+          id: "E-R002-MULTIPLE-LOCKFILES",
+          kind: "lockfile_set",
+          message: "Multiple top-level lockfiles are present",
+          source: "environment",
+        },
+      ],
+      suggested_checks: [
+        "confirm the package manager intended for this repository",
+        "check whether any top-level lockfile is stale",
+        "avoid regenerating or deleting lockfiles until the intended manager is confirmed",
+      ],
+    }
+  } else {
+    unknown_diagnosis()
+  }
+}
