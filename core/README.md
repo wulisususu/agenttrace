@@ -99,6 +99,10 @@ evaluate_policy_rules(rules, evidence)
 evaluate_highest_priority(rules, evidence)
 ```
 
+`inspect_condition` 返回 ConditionReport，明确指出缺失的 all_of、命中的 any_of，以及触发阻断的 none_of。
+
+`inspect_policy_rule` / `inspect_policy_rules` 会保留未命中的规则评估结果，调用方可以解释“为什么没命中”，而不是只看到最终 Diagnosis。
+
 `evaluate_policy_rules` 保留调用方提供的顺序。
 
 `evaluate_highest_priority` 选择 priority 最大的命中规则；priority 相同时，较早出现的规则获胜，因此行为稳定。
@@ -118,7 +122,9 @@ validate_policy_rules(rules)
 - 非法 confidence；
 - 空 Condition；
 - 空 evidence kind；
-- 重复 rule id。
+- 重复 rule id；
+- 同一 evidence kind 同时出现在 all_of 与 none_of；
+- any_of 的所有备选都被 none_of 禁止。
 
 ## 最小示例
 
