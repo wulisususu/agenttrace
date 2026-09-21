@@ -15,22 +15,48 @@ pub(all) struct PolicyRule {
 }
 
 ///|
+/// An explainable evaluation for one policy rule. Consumers can inspect why a
+/// rule did or did not match without reimplementing condition semantics.
+pub(all) struct RuleEvaluation {
+  rule_id : String
+  priority : Int
+  condition : ConditionReport
+  diagnosis : Diagnosis?
+}
+
+///|
+pub fn inspect_policy_rule(
+  rule : PolicyRule,
+  evidence : Array[Evidence],
+) -> RuleEvaluation {
+  let condition = inspect_condition(rule.condition, evidence)
+  let diagnosis : Diagnosis? = if condition.matched {
+    Some({
+      category: rule.category,
+      severity: rule.severity,
+      confidence: rule.confidence,
+      rule_ids: [rule.id],
+      evidence: condition_evidence(rule.condition, evidence),
+      suggested_checks: rule.suggested_checks,
+    })
+  } else {
+    None
+  }
+
+  {
+    rule_id: rule.id,
+    priority: rule.priority,
+    condition,
+    diagnosis,
+  }
+}
+
+///|
 pub fn evaluate_policy_rule(
   rule : PolicyRule,
   evidence : Array[Evidence],
 ) -> Diagnosis? {
-  if !condition_matches(rule.condition, evidence) {
-    return None
-  }
-
-  Some({
-    category: rule.category,
-    severity: rule.severity,
-    confidence: rule.confidence,
-    rule_ids: [rule.id],
-    evidence: condition_evidence(rule.condition, evidence),
-    suggested_checks: rule.suggested_checks,
-  })
+  inspect_policy_rule(rule, evidence).diagnosis
 }
 
 ///|
@@ -47,6 +73,19 @@ pub fn evaluate_policy_rules(
     }
   }
   diagnoses
+}
+
+///|
+/// Inspect every rule, including rules that did not match.
+pub fn inspect_policy_rules(
+  rules : Array[PolicyRule],
+  evidence : Array[Evidence],
+) -> Array[RuleEvaluation] {
+  let evaluations : Array[RuleEvaluation] = []
+  for rule in rules {
+    evaluations.push(inspect_policy_rule(rule, evidence))
+  }
+  evaluations
 }
 
 ///|
