@@ -237,7 +237,7 @@ pub fn parse_cli(argv : ArrayView[String]) -> CliRequest {
 
 ///|
 fn diagnosis_result(
-  diagnosis : @diagnosis.Diagnosis,
+  diagnosis : @core.Diagnosis,
   format : String,
 ) -> CliResult {
   let output = if format == "json" {
@@ -289,7 +289,7 @@ async fn inspect(request : CliRequest) -> CliResult {
       }
   }
 
-  let diagnoses : Array[@diagnosis.Diagnosis] = []
+  let diagnoses : Array[@core.Diagnosis] = []
 
   let worktree_state = @diagnosis.diagnose_r004(
     repository,
