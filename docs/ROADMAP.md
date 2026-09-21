@@ -91,6 +91,15 @@
 
 ### Visual Report & Live Demo
 
+当前进度：
+
+- [x] 建立静态 Visual Reporter；
+- [x] Case A / R001 使用真实 CLI JSON 生成；
+- [x] 校验 CLI 与 Visual Report 的 category / rule / confidence / evidence 一致性；
+- [x] 输出可下载的静态 Actions artifact；
+- [ ] 增加至少两个额外可复现案例；
+- [ ] 建立公开 Live Demo 部署入口。
+
 在 Native CLI 与 JSON Reporter 稳定后，增加一个正式的可视化报告入口。它不是另一套诊断实现，也不是浏览器版 IDE，而是消费 AgentTrace 真实 `DiagnosisResult JSON` 的 Reporter。
 
 目标：
