@@ -205,15 +205,49 @@ DiagnosisResult
 
 LLM 只能解释已有证据或提出额外检查建议，不能静默覆盖确定性诊断结果。
 
-## 8. 可移植性
+## 8. Native 与 Web/WASM 双入口
 
-MVP 首选 Native CLI，以便访问本地 Git、文件系统和进程。
+MVP 首选 Native CLI，以便直接访问本地 Git、文件系统、Worktree、进程和测试输出。Native 入口承担真实工程现场扫描，是 AgentTrace 的主要工作形态。
 
-后续如需要 Web Dashboard，应尽量复用：
+在核心诊断模型稳定后，可增加 Web/WASM 入口，用于交互式体验、案例复现和公开 Demo。两种入口共享同一套尽可能纯函数化的诊断核心，但平台边界不同：
+
+```text
+                    AgentTrace Core
+                       MoonBit
+                          │
+             ┌────────────┴────────────┐
+             │                         │
+          Native                    WASM
+             │                         │
+             ▼                         ▼
+      agenttrace CLI            Web Playground
+      Git / Worktree            fixtures / logs
+      Env / Build / Test        interactive demo
+```
+
+优先复用：
 
 - model；
 - log parser；
 - diagnosis engine；
-- serializer。
+- serializer；
+- 与平台无关的规则与 evidence correlation。
 
-文件系统采集器和命令执行器作为平台适配层单独实现。
+平台适配层单独实现：
+
+- Native：文件系统、Git 命令、进程执行、真实环境采集；
+- Web/WASM：浏览器输入、内置 fixture、脱敏日志和演示状态。
+
+## 9. Web Playground 边界
+
+Web Playground 的主要目的不是把 AgentTrace 变成浏览器版 IDE，而是让用户无需安装工具、无需主动制造一个故障仓库，也能快速理解 AgentTrace 如何从输入生成证据和诊断结果。
+
+建议支持：
+
+- 选择预置故障场景；
+- 载入脱敏测试日志或 fixture；
+- 执行 WASM 侧解析和确定性诊断；
+- 展示 Evidence、Diagnosis、Confidence、Suggested Action；
+- 以时间线或结构化面板解释多个工程信号之间的关系。
+
+公开 Demo 应尽量保持静态部署友好，不依赖常驻后端服务。普通浏览器环境下无法等价获得 Native CLI 对本地 Git、Worktree、文件系统和进程的完整访问能力，因此 Web Playground 只作为体验与展示入口，不替代真实仓库诊断。
