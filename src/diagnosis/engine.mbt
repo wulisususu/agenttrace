@@ -1,34 +1,4 @@
 ///|
-pub(all) struct Evidence {
-  id : String
-  kind : String
-  message : String
-  source : String
-}
-
-///|
-pub(all) struct Diagnosis {
-  category : String
-  severity : String
-  confidence : String
-  rule_ids : Array[String]
-  evidence : Array[Evidence]
-  suggested_checks : Array[String]
-}
-
-///|
-fn unknown_diagnosis() -> Diagnosis {
-  {
-    category: "unknown",
-    severity: "info",
-    confidence: "low",
-    rule_ids: [],
-    evidence: [],
-    suggested_checks: [],
-  }
-}
-
-///|
 fn missing_matcher_occurrences(
   observation : @testlog.TestObservation,
 ) -> Int {
@@ -42,10 +12,12 @@ fn missing_matcher_occurrences(
 }
 
 ///|
+/// Built-in AgentTrace rule for repeated missing-matcher failures after a
+/// successful compile. The reusable data model lives in src/core.
 pub fn diagnose_r001(
   compile_pass : Bool,
   observation : @testlog.TestObservation,
-) -> Diagnosis {
+) -> @core.Diagnosis {
   let repeated_matcher = missing_matcher_occurrences(observation)
 
   if compile_pass &&
@@ -78,14 +50,14 @@ pub fn diagnose_r001(
       ],
     }
   } else {
-    unknown_diagnosis()
+    @core.unknown_diagnosis()
   }
 }
 
 ///|
 pub fn diagnose_r002(
   build : @buildlog.BuildObservation,
-) -> Diagnosis {
+) -> @core.Diagnosis {
   if build.status == "fail" &&
     build.exit_code != 0 &&
     build.errors.length() > 0 {
@@ -115,14 +87,14 @@ pub fn diagnose_r002(
       ],
     }
   } else {
-    unknown_diagnosis()
+    @core.unknown_diagnosis()
   }
 }
 
 ///|
 pub fn diagnose_r003(
   observation : @testlog.TestObservation,
-) -> Diagnosis {
+) -> @core.Diagnosis {
   let repeated_matcher = missing_matcher_occurrences(observation)
 
   if observation.status == "fail" &&
@@ -158,7 +130,7 @@ pub fn diagnose_r003(
       ],
     }
   } else {
-    unknown_diagnosis()
+    @core.unknown_diagnosis()
   }
 }
 
@@ -167,13 +139,13 @@ pub fn diagnose_r004(
   repository : @git.RepositorySnapshot,
   expected_branch : String,
   require_clean : Bool,
-) -> Diagnosis {
+) -> @core.Diagnosis {
   let branch_mismatch =
     expected_branch != "" && repository.branch != expected_branch
   let dirty_violation = require_clean && repository.is_dirty
 
   if branch_mismatch || dirty_violation {
-    let evidence : Array[Evidence] = []
+    let evidence : Array[@core.Evidence] = []
 
     if branch_mismatch {
       evidence.push({
@@ -206,14 +178,14 @@ pub fn diagnose_r004(
       ],
     }
   } else {
-    unknown_diagnosis()
+    @core.unknown_diagnosis()
   }
 }
 
 ///|
 pub fn diagnose_r005(
   environment : @environment.EnvironmentSnapshot,
-) -> Diagnosis {
+) -> @core.Diagnosis {
   if environment.package_managers.length() >= 2 &&
     environment.lockfiles.length() >= 2 {
     {
@@ -242,6 +214,6 @@ pub fn diagnose_r005(
       ],
     }
   } else {
-    unknown_diagnosis()
+    @core.unknown_diagnosis()
   }
 }
