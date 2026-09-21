@@ -1,5 +1,16 @@
 # AgentTrace Visual Report 规范
 
+## 0. 当前实现状态
+
+首个纵向切片已经实现：
+
+- Case A（Dependency Environment Failure）已有静态 Visual Report；
+- 页面消费由真实 `agenttrace inspect ... --format json` 生成的数据；
+- CI 校验 `schema_version`、build/test 事实、category、severity、confidence、R001、Evidence 和 Suggested Action；
+- 静态 bundle 通过 HTTP smoke test 后作为 `agenttrace-visual-report` Actions artifact 上传；
+- 浏览器代码只负责展示，不重新判断故障类型；
+- 当前尚未把 artifact 宣称为公开 Live Demo，也尚未完成 Case B–E。
+
 ## 1. 目标
 
 Visual Report 是 AgentTrace 的一个正式 Reporter，用来把真实的 `DiagnosisResult JSON` 转换成更容易理解和展示的诊断界面。
@@ -175,7 +186,7 @@ moon run cmd/main inspect . \
 - Evidence 不得添加不存在于 JSON 中的事实；
 - Suggested Action 不得与核心诊断相冲突。
 
-推荐后续在 CI 中增加 golden JSON / snapshot 校验。
+首个 R001 页面已经在 CI 中校验真实 CLI JSON 的关键契约；后续扩展多案例时再评估完整 golden JSON / snapshot 校验。
 
 ## 7. Live Demo 定位
 

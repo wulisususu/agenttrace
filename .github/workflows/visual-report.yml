@@ -1,0 +1,96 @@
+name: visual-report
+
+on:
+  push:
+    paths:
+      - "web/**"
+      - "src/**"
+      - "cmd/**"
+      - "fixtures/**"
+      - "moon.mod"
+      - "moon.pkg"
+      - ".github/workflows/visual-report.yml"
+  pull_request:
+    paths:
+      - "web/**"
+      - "src/**"
+      - "cmd/**"
+      - "fixtures/**"
+      - "moon.mod"
+      - "moon.pkg"
+      - ".github/workflows/visual-report.yml"
+  workflow_dispatch:
+
+env:
+  MOONBIT_VERSION: 0.10.14+7d59c7ec9
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MoonBit
+        shell: bash
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s "$MOONBIT_VERSION"
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Generate R001 demo JSON from the real CLI
+        shell: bash
+        run: |
+          moon update
+          mkdir -p web/data
+
+          set +e
+          demo="$(moon run cmd/main inspect . --log fixtures/logs/vitest-missing-matcher.txt --build-exit-code 0 --format json)"
+          code=$?
+          set -e
+
+          test "$code" -eq 1
+          printf '%s\n' "$demo" > web/data/dependency-environment.json
+
+      - name: Validate Visual Report data contract
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("web/data/dependency-environment.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+
+          assert data["schema_version"] == "0.1"
+          assert data["build"]["status"] == "pass"
+          assert data["tests"]["failed_suites"] == 27
+          assert data["tests"]["failed_tests"] == 155
+
+          diagnoses = data["diagnoses"]
+          assert len(diagnoses) >= 1
+          diagnosis = diagnoses[0]
+          assert diagnosis["category"] == "dependency_environment_error"
+          assert diagnosis["severity"] == "error"
+          assert diagnosis["confidence"] == "high"
+          assert diagnosis["rule_ids"] == ["R001"]
+          assert len(diagnosis["evidence"]) >= 2
+          assert len(diagnosis["suggested_checks"]) >= 1
+          PY
+
+      - name: Smoke test static bundle over HTTP
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --directory web > /tmp/agenttrace-web.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          sleep 1
+
+          curl --fail --silent http://127.0.0.1:4173/ | grep -Fq "AgentTrace Visual Report"
+          curl --fail --silent http://127.0.0.1:4173/app.js | grep -Fq "dependency-environment.json"
+          curl --fail --silent http://127.0.0.1:4173/data/dependency-environment.json | grep -Fq '"rule_ids":["R001"]'
+
+      - name: Upload generated static report
+        uses: actions/upload-artifact@v4
+        with:
+          name: agenttrace-visual-report
+          path: web/
+          if-no-files-found: error
