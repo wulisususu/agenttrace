@@ -1,11 +1,13 @@
 import {
   "wulisususu/agenttrace" @app,
+  "wulisususu/agenttrace/src/buildlog" @buildlog,
   "wulisususu/agenttrace/src/diagnosis" @diagnosis,
   "wulisususu/agenttrace/src/environment" @environment,
   "wulisususu/agenttrace/src/git" @git,
   "wulisususu/agenttrace/src/report" @report,
   "wulisususu/agenttrace/src/testlog" @testlog,
   "moonbitlang/async/fs" @fs,
+  "moonbitlang/core/string" @string,
 }
 
 import {

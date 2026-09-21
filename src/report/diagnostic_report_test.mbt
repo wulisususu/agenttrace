@@ -16,6 +16,7 @@ test "render aggregate diagnostic report as JSON" {
   let report : @report.DiagnosticReport = {
     repository,
     environment,
+    build: None,
     tests: None,
     diagnoses: [],
   }
@@ -25,8 +26,37 @@ test "render aggregate diagnostic report as JSON" {
   assert_true(actual.contains("\"repository\":"))
   assert_true(actual.contains("\"branch\":\"main\""))
   assert_true(actual.contains("\"package_managers\":[\"pnpm\"]"))
+  assert_true(actual.contains("\"build\":null"))
   assert_true(actual.contains("\"tests\":null"))
   assert_true(actual.contains("\"status\":\"no_diagnosis\""))
+}
+
+///|
+test "aggregate report includes build observation" {
+  let repository : @git.RepositorySnapshot = {
+    root: "/repo",
+    branch: "main",
+    head: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    is_dirty: false,
+    changed_files: [],
+    worktrees: [],
+  }
+  let environment = @environment.detect_environment_from_names([])
+  let build = @buildlog.parse_tsc("", 0)
+  let report : @report.DiagnosticReport = {
+    repository,
+    environment,
+    build: Some(build),
+    tests: None,
+    diagnoses: [],
+  }
+  let json = @report.render_report_json(report)
+  let text = @report.render_report_text(report)
+
+  assert_true(json.contains("\"build\":{\"compiler\":\"tsc\""))
+  assert_true(json.contains("\"status\":\"pass\""))
+  assert_true(text.contains("Build\n  Compiler: tsc"))
+  assert_true(text.contains("Exit code: 0"))
 }
 
 ///|
@@ -47,6 +77,7 @@ test "aggregate text report includes collected facts" {
   let report : @report.DiagnosticReport = {
     repository,
     environment,
+    build: None,
     tests: None,
     diagnoses: [],
   }

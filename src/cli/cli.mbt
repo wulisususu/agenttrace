@@ -4,6 +4,8 @@ pub(all) struct CliRequest {
   input : String
   format : String
   log : String
+  build_log : String
+  build_exit_code : Int
   error : String
 }
 
@@ -20,7 +22,7 @@ pub fn usage() -> String {
     #|AgentTrace
     #|
     #|Usage:
-    #|  agenttrace inspect <path> [--format text|json] [--log <file>]
+    #|  agenttrace inspect <path> [--format text|json] [--log <file>] [--build-exit-code <n>] [--build-log <file>]
     #|  agenttrace analyze-log <file> [--format text|json]
     #|  agenttrace version
     #|  agenttrace --help
@@ -41,8 +43,18 @@ fn invalid(message : String) -> CliRequest {
     input: "",
     format: "text",
     log: "",
+    build_log: "",
+    build_exit_code: -1,
     error: message,
   }
+}
+
+///|
+fn parse_nonnegative_int(value : String) -> Int {
+  let parsed = @string.from_str(value) catch {
+    _ => -1
+  }
+  if parsed < 0 { -1 } else { parsed }
 }
 
 ///|
@@ -54,6 +66,8 @@ fn parse_inspect(argv : ArrayView[String]) -> CliRequest {
   let input = argv[1]
   let mut format = "text"
   let mut log = ""
+  let mut build_log = ""
+  let mut build_exit_code = -1
   let mut index = 2
 
   while index < argv.length() {
@@ -73,12 +87,39 @@ fn parse_inspect(argv : ArrayView[String]) -> CliRequest {
       }
       log = argv[index + 1]
       index = index + 2
+    } else if argv[index] == "--build-log" {
+      if index + 1 >= argv.length() {
+        return invalid("--build-log requires a file path")
+      }
+      build_log = argv[index + 1]
+      index = index + 2
+    } else if argv[index] == "--build-exit-code" {
+      if index + 1 >= argv.length() {
+        return invalid("--build-exit-code requires a non-negative integer")
+      }
+      build_exit_code = parse_nonnegative_int(argv[index + 1])
+      if build_exit_code < 0 {
+        return invalid("--build-exit-code must be a non-negative integer")
+      }
+      index = index + 2
     } else {
       return invalid("unsupported inspect argument: \{argv[index]}")
     }
   }
 
-  { command: "inspect", input, format, log, error: "" }
+  if build_log != "" && build_exit_code < 0 {
+    return invalid("--build-log requires --build-exit-code")
+  }
+
+  {
+    command: "inspect",
+    input,
+    format,
+    log,
+    build_log,
+    build_exit_code,
+    error: "",
+  }
 }
 
 ///|
@@ -89,6 +130,8 @@ pub fn parse_cli(argv : ArrayView[String]) -> CliRequest {
       input: "",
       format: "text",
       log: "",
+      build_log: "",
+      build_exit_code: -1,
       error: "",
     }
   }
@@ -101,6 +144,8 @@ pub fn parse_cli(argv : ArrayView[String]) -> CliRequest {
         input: "",
         format: "text",
         log: "",
+        build_log: "",
+        build_exit_code: -1,
         error: "",
       }
     } else {
@@ -113,6 +158,8 @@ pub fn parse_cli(argv : ArrayView[String]) -> CliRequest {
         input: "",
         format: "text",
         log: "",
+        build_log: "",
+        build_exit_code: -1,
         error: "",
       }
     } else {
@@ -127,13 +174,29 @@ pub fn parse_cli(argv : ArrayView[String]) -> CliRequest {
 
     let input = argv[1]
     if argv.length() == 2 {
-      return { command, input, format: "text", log: "", error: "" }
+      return {
+        command,
+        input,
+        format: "text",
+        log: "",
+        build_log: "",
+        build_exit_code: -1,
+        error: "",
+      }
     }
 
     if argv.length() == 4 && argv[2] == "--format" {
       let format = argv[3]
       if format == "text" || format == "json" {
-        { command, input, format, log: "", error: "" }
+        {
+          command,
+          input,
+          format,
+          log: "",
+          build_log: "",
+          build_exit_code: -1,
+          error: "",
+        }
       } else {
         invalid("--format must be text or json")
       }
@@ -205,6 +268,29 @@ async fn inspect(request : CliRequest) -> CliResult {
     diagnoses.push(package_manager)
   }
 
+  let mut build : @buildlog.BuildObservation? = None
+  if request.build_exit_code >= 0 {
+    let mut build_text = ""
+    if request.build_log != "" {
+      let data = @fs.read_file(request.build_log) catch {
+        _ =>
+          return {
+            stdout: "",
+            stderr: "AgentTrace: unable to read build log\n",
+            exit_code: 3,
+          }
+      }
+      build_text = data.text()
+    }
+
+    let observation = @buildlog.parse_tsc(build_text, request.build_exit_code)
+    build = Some(observation)
+    let compile_failure = @diagnosis.diagnose_r002(observation)
+    if compile_failure.category != "unknown" {
+      diagnoses.push(compile_failure)
+    }
+  }
+
   let mut tests : @testlog.TestObservation? = None
   if request.log != "" {
     let data = @fs.read_file(request.log) catch {
@@ -217,6 +303,20 @@ async fn inspect(request : CliRequest) -> CliResult {
     }
     let observation = @testlog.parse_vitest(data.text())
     tests = Some(observation)
+
+    match build {
+      Some(build_observation) => {
+        let environment_failure = @diagnosis.diagnose_r001(
+          build_observation.status == "pass",
+          observation,
+        )
+        if environment_failure.category != "unknown" {
+          diagnoses.push(environment_failure)
+        }
+      }
+      None => ()
+    }
+
     let assertion = @diagnosis.diagnose_r003(observation)
     if assertion.category != "unknown" {
       diagnoses.push(assertion)
@@ -226,6 +326,7 @@ async fn inspect(request : CliRequest) -> CliResult {
   let report : @report.DiagnosticReport = {
     repository,
     environment,
+    build,
     tests,
     diagnoses,
   }
