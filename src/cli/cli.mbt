@@ -15,19 +15,21 @@ pub(all) struct CliResult {
 
 ///|
 pub fn usage() -> String {
-  #|AgentTrace
-  #|
-  #|Usage:
-  #|  agenttrace analyze-log <file> [--format text|json]
-  #|  agenttrace version
-  #|  agenttrace --help
-  #|
-  #|Exit codes:
-  #|  0  execution succeeded, no diagnosis produced
-  #|  1  execution succeeded, a diagnosis was produced
-  #|  2  invalid arguments
-  #|  3  input could not be read
-  #|  4  internal error
+  let text =
+    #|AgentTrace
+    #|
+    #|Usage:
+    #|  agenttrace analyze-log <file> [--format text|json]
+    #|  agenttrace version
+    #|  agenttrace --help
+    #|
+    #|Exit codes:
+    #|  0  execution succeeded, no diagnosis produced
+    #|  1  execution succeeded, a diagnosis was produced
+    #|  2  invalid arguments
+    #|  3  input could not be read
+    #|  4  internal error
+  text
 }
 
 ///|
