@@ -89,36 +89,45 @@
 - GitHub Actions；
 - 其他 CI 日志。
 
-### Web/WASM Playground
+### Visual Report & Live Demo
 
-在 Native CLI 稳定后，为项目提供一个无需安装即可体验的 Web Playground，用于降低首次体验和评审演示门槛。
+在 Native CLI 与 JSON Reporter 稳定后，增加一个正式的可视化报告入口。它不是另一套诊断实现，也不是浏览器版 IDE，而是消费 AgentTrace 真实 `DiagnosisResult JSON` 的 Reporter。
 
 目标：
 
-- 将可纯函数化的 MoonBit 核心（model、log parser、diagnosis engine、serializer）复用到 WASM；
-- 提供内置故障场景，例如 Worktree 状态异常、重复测试失败、依赖环境异常和多 Agent 修改冲突；
-- 用户可以在浏览器中选择场景、运行诊断，并查看 Evidence、Diagnosis、Suggested Action 等结构化结果；
-- 支持加载脱敏后的日志或预构造 fixture，便于展示诊断能力；
-- Web 页面保持静态部署友好，可直接作为项目 Live Demo 发布，不依赖常驻后端服务；
-- Web Playground 不替代 Native CLI，也不声称能够在普通浏览器中完整扫描用户本地 Git 仓库。
+- CLI 对真实仓库、Worktree、环境和测试日志执行诊断；
+- JSON Reporter 输出稳定、可复现的 `DiagnosisResult`；
+- Visual Report 将同一份 JSON 展示为时间线、Evidence、Diagnosis、Confidence 和 Suggested Action；
+- 提供 3–5 个可复现 fixture 场景，例如依赖环境异常、错误 Worktree 验收、异常 HEAD 变化和重复失败聚类；
+- Live Demo 使用这些真实 fixture 的输出，不编造诊断结果；
+- 每个网页案例都给出对应 CLI 复现命令，使评审者可以从网页展示回到仓库验证；
+- 页面保持静态部署友好，可作为公开 Live Demo 发布，不要求常驻后端。
 
-建议形态：
+建议数据流：
 
 ```text
-                    AgentTrace Core
-                       MoonBit
-                          │
-             ┌────────────┴────────────┐
-             │                         │
-          Native                    WASM
-             │                         │
-             ▼                         ▼
-      agenttrace CLI            Web Playground
-      real repository           fixtures / logs
-        inspection               interactive demo
+Git / Worktree / Env / Build / Test
+                 │
+                 ▼
+          AgentTrace Core
+                 │
+                 ▼
+        DiagnosisResult JSON
+             ┌───┴────┐
+             │        │
+             ▼        ▼
+       Text Reporter  Visual Report
+          Terminal     Live Demo
 ```
 
-完成标准：访问公开 Demo 后，不安装 AgentTrace、不准备真实故障仓库，也能在数步操作内理解 AgentTrace 的诊断输入、证据链和输出结果。
+完成标准：
+
+1. 网页展示的数据来自 AgentTrace 实际 JSON 输出；
+2. 至少 3 个展示案例可在仓库 fixture 中复现；
+3. 同一案例的 CLI 与 Visual Report 必须得到一致的诊断类别、规则 ID、confidence 和 evidence；
+4. 用户无需安装工具也能快速理解项目价值，但本地真实仓库诊断仍由 Native CLI 完成。
+
+WASM 作为后续优化项：只有当浏览器内复用 MoonBit 解析/诊断核心能明显提升体验时再引入，不作为 Visual Report 的前置条件。
 
 ### Optional AI Explainer
 
