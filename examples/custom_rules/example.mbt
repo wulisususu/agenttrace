@@ -1,19 +1,23 @@
 ///|
-/// Minimal example showing that AgentTrace Core can be consumed without the
-/// AgentTrace CLI, Git collector, test-log parser, or web report.
+/// Diagnose a service using only AgentTrace Core's public API.
 pub fn diagnose_service(
   evidence : Array[@core.Evidence],
 ) -> @core.Diagnosis? {
-  let rule : @core.Rule = {
+  let rule : @core.PolicyRule = {
     id: "SERVICE001",
     category: "service_unavailable",
     severity: "error",
     confidence: "high",
-    required_evidence_kinds: ["timeout", "retry_exhausted"],
+    priority: 100,
+    condition: {
+      all_of: ["service_started"],
+      any_of: ["timeout", "connection_refused"],
+      none_of: ["maintenance_mode"],
+    },
     suggested_checks: [
       "verify upstream service availability",
       "check retry and timeout configuration",
     ],
   }
-  @core.evaluate_rule(rule, evidence)
+  @core.evaluate_policy_rule(rule, evidence)
 }
