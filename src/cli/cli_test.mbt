@@ -33,8 +33,40 @@ test "parse inspect with build and test context" {
   assert_eq(request.log, "C:\\logs\\vitest.txt")
   assert_eq(request.build_log, "C:\\logs\\tsc.txt")
   assert_eq(request.build_exit_code, 2)
+  assert_eq(request.expected_branch, "")
+  assert_eq(request.require_clean, false)
   assert_eq(request.format, "json")
   assert_eq(request.error, "")
+}
+
+///|
+test "parse inspect worktree expectations" {
+  let request = @cli.parse_cli([
+    "inspect",
+    ".",
+    "--expected-branch",
+    "feat/expected",
+    "--require-clean",
+    "--format",
+    "json",
+  ])
+
+  assert_eq(request.command, "inspect")
+  assert_eq(request.expected_branch, "feat/expected")
+  assert_eq(request.require_clean, true)
+  assert_eq(request.format, "json")
+  assert_eq(request.error, "")
+}
+
+///|
+test "reject expected branch without value" {
+  let request = @cli.parse_cli([
+    "inspect",
+    ".",
+    "--expected-branch",
+  ])
+
+  assert_true(request.error.contains("--expected-branch requires a branch name"))
 }
 
 ///|
@@ -190,6 +222,24 @@ async test "inspect can include assertion test observations and diagnoses" {
   assert_eq(result.exit_code, 1)
   assert_true(result.stdout.contains("\"tests\":"))
   assert_true(result.stdout.contains("\"category\":\"test_assertion_failure\""))
+}
+
+///|
+async test "inspect diagnoses explicit branch expectation mismatch" {
+  @async.pause()
+  let result = @cli.run([
+    "inspect",
+    ".",
+    "--expected-branch",
+    "__agenttrace_expected_branch__",
+    "--format",
+    "json",
+  ])
+
+  assert_eq(result.exit_code, 1)
+  assert_true(result.stdout.contains("\"category\":\"worktree_state_error\""))
+  assert_true(result.stdout.contains("\"rule_ids\":[\"R004\"]"))
+  assert_true(result.stdout.contains("\"kind\":\"branch_mismatch\""))
 }
 
 ///|

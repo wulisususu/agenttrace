@@ -73,6 +73,15 @@ jobs:
           printf '%s' "$compile_case" | grep -Fq '"category":"build_compile_error"'
           printf '%s' "$compile_case" | grep -Fq '"rule_ids":["R002"]'
 
+          set +e
+          worktree_case="$(moon run cmd/main inspect . --expected-branch __agenttrace_expected_branch__ --format json)"
+          worktree_code=$?
+          set -e
+          test "$worktree_code" -eq 1
+          printf '%s' "$worktree_case" | grep -Fq '"category":"worktree_state_error"'
+          printf '%s' "$worktree_case" | grep -Fq '"rule_ids":["R004"]'
+          printf '%s' "$worktree_case" | grep -Fq '"kind":"branch_mismatch"'
+
   windows:
     runs-on: windows-latest
     steps:
@@ -137,5 +146,11 @@ jobs:
           $compileCode = $LASTEXITCODE
           if ($compileCode -ne 1 -or $compileCase -notmatch '"category":"build_compile_error"' -or $compileCase -notmatch '"rule_ids":\["R002"\]') {
             throw "R002 compile diagnosis smoke test failed"
+          }
+
+          $worktreeCase = (moon run cmd/main inspect . --expected-branch __agenttrace_expected_branch__ --format json | Out-String).Trim()
+          $worktreeCode = $LASTEXITCODE
+          if ($worktreeCode -ne 1 -or $worktreeCase -notmatch '"category":"worktree_state_error"' -or $worktreeCase -notmatch '"rule_ids":\["R004"\]' -or $worktreeCase -notmatch '"kind":"branch_mismatch"') {
+            throw "R004 worktree expectation smoke test failed"
           }
           exit 0

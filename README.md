@@ -81,7 +81,7 @@ Diagnosis
 
 ## 项目状态
 
-**MVP 验收闭环已完成**。Repository/Worktree 采集、环境快照、Vitest/TypeScript 构建日志解析、R001–R005 确定性诊断、Text/JSON Reporter、默认 Home 路径脱敏，以及 `version`、`analyze-log`、`inspect` CLI 均已通过 Linux / Windows 与 fresh-clone 验证。Post-MVP 已进入 Visual Report 阶段：首个 R001 静态报告切片由真实 CLI JSON 生成并经 CI 校验；公开 Live Demo 部署和更多案例仍在后续范围。
+**MVP 验收闭环已完成**。Repository/Worktree 采集、环境快照、Vitest/TypeScript 构建日志解析、R001–R005 确定性诊断、Text/JSON Reporter、默认 Home 路径脱敏，以及 `version`、`analyze-log`、`inspect` CLI 均已通过 Linux / Windows 与 fresh-clone 验证。Post-MVP 已进入 Visual Report 阶段：R001 环境故障与 R004 显式分支预期两个静态报告案例都由真实 CLI JSON 生成并经 CI 校验；公开 Live Demo 部署和更多案例仍在后续范围。
 
 ## MVP 目标
 
@@ -170,6 +170,7 @@ agenttrace inspect . --format json
 agenttrace inspect . --log ./test-output.txt --format json
 agenttrace inspect . --log ./test-output.txt --build-exit-code 0 --format json
 agenttrace inspect . --build-log ./tsc-output.txt --build-exit-code 2 --format json
+agenttrace inspect . --expected-branch main --require-clean --format json
 agenttrace analyze-log ./test-output.txt
 agenttrace analyze-log ./test-output.txt --format json
 ```
@@ -206,24 +207,31 @@ moon run cmd/main analyze-log fixtures/logs/vitest-missing-matcher.txt
 
 由于缺少 compile-pass 事实，AgentTrace 会保持 `unknown`，不会为了得出环境结论而补造证据。
 
-完整的正常、编译故障和环境伪装案例见 [Demo 文档](docs/DEMO.md)。
+完整的正常、编译故障、环境伪装和显式 Worktree/分支预期案例见 [Demo 文档](docs/DEMO.md)。
 
-## Visual Report（首个切片）
+## Visual Report（两个真实案例）
 
-`web/` 已加入首个静态 Visual Report，用来展示 R001 “编译通过但测试大量同源失败”的环境诊断案例。
+`web/` 已加入静态 Visual Report，目前可切换两个真实诊断案例：
 
-它不包含第二套诊断规则。CI 会先执行真实 CLI：
+- R001：编译通过但测试大量同源失败，优先指向依赖/测试环境；
+- R004：当前仓库分支与显式任务预期不一致，先验证 Worktree/分支现场。
+
+它不包含第二套诊断规则。CI 会分别执行真实 CLI：
 
 ```bash
 moon run cmd/main inspect . \
   --log fixtures/logs/vitest-missing-matcher.txt \
   --build-exit-code 0 \
   --format json
+
+moon run cmd/main inspect . \
+  --expected-branch __agenttrace_expected_branch__ \
+  --format json
 ```
 
-然后把该 JSON 写入静态报告 bundle，校验 `category / severity / confidence / rule_ids / evidence`，通过 HTTP smoke test 后上传为 `agenttrace-visual-report` Actions artifact。
+然后把两份 JSON 写入静态报告 bundle，校验 `category / severity / confidence / rule_ids / evidence`，通过 HTTP smoke test 后上传为 `agenttrace-visual-report` Actions artifact。
 
-当前状态：**静态 Reporter + 真实数据生成链已实现；公开 Pages/Live Demo 尚未宣称完成。**
+当前状态：**双案例静态 Reporter + 真实数据生成链已实现；公开 Pages/Live Demo 尚未宣称完成。**
 
 ## 默认报告脱敏
 

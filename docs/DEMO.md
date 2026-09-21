@@ -91,6 +91,26 @@ moon run cmd/main analyze-log \
 
 预期规则：`R003`，category 为 `test_assertion_failure`。
 
+## 5. Worktree / 分支预期不一致
+
+R004 不会根据“看起来不对”自行猜测目标分支。调用方需要显式提供预期：
+
+```bash
+moon run cmd/main inspect . \
+  --expected-branch __agenttrace_expected_branch__ \
+  --format json
+```
+
+在仓库当前分支不是该占位分支时，预期：
+
+- exit code = `1`
+- category = `worktree_state_error`
+- confidence = `high`
+- rule = `R004`
+- evidence.kind = `branch_mismatch`
+
+真实使用时把占位值替换成任务应该所在的分支，例如 `main` 或 `feat/my-task`。如果还要求没有本地残留修改，可额外传 `--require-clean`。没有这些显式约束时，AgentTrace 不会仅因为工作区 dirty 或当前分支名称不同就猜测故障。
+
 ## 验证命令
 
 ```bash

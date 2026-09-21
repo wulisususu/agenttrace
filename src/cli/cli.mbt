@@ -6,6 +6,8 @@ pub(all) struct CliRequest {
   log : String
   build_log : String
   build_exit_code : Int
+  expected_branch : String
+  require_clean : Bool
   error : String
 }
 
@@ -22,7 +24,7 @@ pub fn usage() -> String {
     #|AgentTrace
     #|
     #|Usage:
-    #|  agenttrace inspect <path> [--format text|json] [--log <file>] [--build-exit-code <n>] [--build-log <file>]
+    #|  agenttrace inspect <path> [--format text|json] [--log <file>] [--build-exit-code <n>] [--build-log <file>] [--expected-branch <name>] [--require-clean]
     #|  agenttrace analyze-log <file> [--format text|json]
     #|  agenttrace version
     #|  agenttrace --help
@@ -45,6 +47,8 @@ fn invalid(message : String) -> CliRequest {
     log: "",
     build_log: "",
     build_exit_code: -1,
+    expected_branch: "",
+    require_clean: false,
     error: message,
   }
 }
@@ -68,6 +72,8 @@ fn parse_inspect(argv : ArrayView[String]) -> CliRequest {
   let mut log = ""
   let mut build_log = ""
   let mut build_exit_code = -1
+  let mut expected_branch = ""
+  let mut require_clean = false
   let mut index = 2
 
   while index < argv.length() {
@@ -102,6 +108,15 @@ fn parse_inspect(argv : ArrayView[String]) -> CliRequest {
         return invalid("--build-exit-code must be a non-negative integer")
       }
       index = index + 2
+    } else if argv[index] == "--expected-branch" {
+      if index + 1 >= argv.length() || argv[index + 1] == "" {
+        return invalid("--expected-branch requires a branch name")
+      }
+      expected_branch = argv[index + 1]
+      index = index + 2
+    } else if argv[index] == "--require-clean" {
+      require_clean = true
+      index = index + 1
     } else {
       return invalid("unsupported inspect argument: \{argv[index]}")
     }
@@ -118,6 +133,8 @@ fn parse_inspect(argv : ArrayView[String]) -> CliRequest {
     log,
     build_log,
     build_exit_code,
+    expected_branch,
+    require_clean,
     error: "",
   }
 }
@@ -132,6 +149,8 @@ pub fn parse_cli(argv : ArrayView[String]) -> CliRequest {
       log: "",
       build_log: "",
       build_exit_code: -1,
+      expected_branch: "",
+      require_clean: false,
       error: "",
     }
   }
@@ -146,6 +165,8 @@ pub fn parse_cli(argv : ArrayView[String]) -> CliRequest {
         log: "",
         build_log: "",
         build_exit_code: -1,
+        expected_branch: "",
+        require_clean: false,
         error: "",
       }
     } else {
@@ -160,6 +181,8 @@ pub fn parse_cli(argv : ArrayView[String]) -> CliRequest {
         log: "",
         build_log: "",
         build_exit_code: -1,
+        expected_branch: "",
+        require_clean: false,
         error: "",
       }
     } else {
@@ -181,6 +204,8 @@ pub fn parse_cli(argv : ArrayView[String]) -> CliRequest {
         log: "",
         build_log: "",
         build_exit_code: -1,
+        expected_branch: "",
+        require_clean: false,
         error: "",
       }
     }
@@ -195,6 +220,8 @@ pub fn parse_cli(argv : ArrayView[String]) -> CliRequest {
           log: "",
           build_log: "",
           build_exit_code: -1,
+          expected_branch: "",
+          require_clean: false,
           error: "",
         }
       } else {
@@ -263,6 +290,16 @@ async fn inspect(request : CliRequest) -> CliResult {
   }
 
   let diagnoses : Array[@diagnosis.Diagnosis] = []
+
+  let worktree_state = @diagnosis.diagnose_r004(
+    repository,
+    request.expected_branch,
+    request.require_clean,
+  )
+  if worktree_state.category != "unknown" {
+    diagnoses.push(worktree_state)
+  }
+
   let package_manager = @diagnosis.diagnose_r005(environment)
   if package_manager.category != "unknown" {
     diagnoses.push(package_manager)
