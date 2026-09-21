@@ -190,7 +190,7 @@ async fn inspect(request : CliRequest) -> CliResult {
         exit_code: 3,
       }
   }
-  let environment = @environment.collect_environment(request.input) catch {
+  let environment = @environment.collect_environment(repository.root) catch {
     _ =>
       return {
         stdout: "",
