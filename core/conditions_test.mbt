@@ -116,3 +116,40 @@ test "evidence query helpers are deterministic" {
   assert_eq(@core.evidence_count_kind(facts, "timeout"), 2)
   assert_eq(@core.evidence_by_kind(facts, "timeout").length(), 2)
 }
+
+///|
+test "condition report explains missing and blocking evidence" {
+  let condition : @core.Condition = {
+    all_of: ["service_started", "health_probe_enabled"],
+    any_of: ["http_500", "timeout"],
+    none_of: ["maintenance_mode"],
+  }
+  let facts = [
+    evidence("service_started", "E1"),
+    evidence("timeout", "E2"),
+    evidence("maintenance_mode", "E3"),
+  ]
+
+  let report = @core.inspect_condition(condition, facts)
+  assert_true(!report.matched)
+  assert_true(!report.empty_condition)
+  assert_eq(report.missing_all.length(), 1)
+  assert_eq(report.missing_all[0], "health_probe_enabled")
+  assert_eq(report.matched_any.length(), 1)
+  assert_eq(report.matched_any[0], "timeout")
+  assert_eq(report.blocked_by.length(), 1)
+  assert_eq(report.blocked_by[0], "maintenance_mode")
+}
+
+///|
+test "empty condition report remains explicit" {
+  let condition : @core.Condition = {
+    all_of: [],
+    any_of: [],
+    none_of: [],
+  }
+
+  let report = @core.inspect_condition(condition, [])
+  assert_true(report.empty_condition)
+  assert_true(!report.matched)
+}
