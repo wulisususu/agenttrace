@@ -81,7 +81,7 @@ Diagnosis
 
 ## 项目状态
 
-当前处于 **MVP 设计与实现阶段**。仓库中的功能说明以“计划 / 目标”为主，未标记为已完成的能力均不代表当前已经实现。
+当前处于 **MVP 实现阶段**。Repository/Worktree 采集、环境快照、Vitest 日志解析、确定性诊断规则、Text/JSON Reporter，以及 `version`、`analyze-log`、`inspect` CLI 已有可运行实现；`doctor`、更多日志适配器、完整脱敏与更多 Demo 仍在后续范围。
 
 ## MVP 目标
 
@@ -102,15 +102,17 @@ Diagnosis
 - **可复现**：通过 fixtures 和自动化测试复现典型故障。
 - **范围克制**：MVP 不做 IDE、不做完整多 Agent 调度平台、不自动修改用户源码。
 
-## 初步使用形态
+## 当前 CLI
 
-计划中的 CLI 形式：
+目前已实现并由 Linux / Windows CI 验证：
 
 ```bash
+agenttrace version
 agenttrace inspect .
 agenttrace inspect . --format json
+agenttrace inspect . --log ./test-output.txt --format json
 agenttrace analyze-log ./test-output.txt
-agenttrace doctor .
+agenttrace analyze-log ./test-output.txt --format json
 ```
 
 示例输出目标：
@@ -144,7 +146,7 @@ Suggested action
   3. rerun tests before reverting source changes
 ```
 
-> 上述内容是目标输出格式示意，不代表当前版本已实现。
+> 上述报告内容仍是示意格式；实际 CLI 当前已经可运行，输出字段以 `schema_version: 0.1` 和自动化测试为准。
 
 ## 计划中的目录结构
 

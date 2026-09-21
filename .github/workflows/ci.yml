@@ -50,6 +50,13 @@ jobs:
           test "$code" -eq 1
           printf '%s' "$diagnosis" | grep -q '"category":"test_assertion_failure"'
 
+          inspection="$(moon run cmd/main inspect . --format json)"
+          inspect_code=$?
+          printf '%s\n' "$inspection"
+          test "$inspect_code" -eq 0
+          printf '%s' "$inspection" | grep -q '"repository":'
+          printf '%s' "$inspection" | grep -q '"environment":'
+
   windows:
     runs-on: windows-latest
     steps:
@@ -98,5 +105,18 @@ jobs:
           }
           if ($diagnosis -notmatch '"category":"test_assertion_failure"') {
             throw "analyze-log JSON did not contain the expected diagnosis"
+          }
+
+          $inspection = (moon run cmd/main inspect . --format json | Out-String).Trim()
+          $inspectCode = $LASTEXITCODE
+          Write-Output $inspection
+          if ($inspectCode -ne 0) {
+            throw "inspect returned exit code $inspectCode instead of 0"
+          }
+          if ($inspection -notmatch '"repository":') {
+            throw "inspect JSON did not contain repository data"
+          }
+          if ($inspection -notmatch '"environment":') {
+            throw "inspect JSON did not contain environment data"
           }
           exit 0
