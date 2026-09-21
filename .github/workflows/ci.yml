@@ -26,9 +26,6 @@ jobs:
       - name: Refresh package registry
         run: moon update
 
-      - name: Install dependencies
-        run: moon install
-
       - name: Check
         run: moon check --target native --deny-warn
 
@@ -63,9 +60,6 @@ jobs:
 
       - name: Refresh package registry
         run: moon update
-
-      - name: Install dependencies
-        run: moon install
 
       - name: Check
         run: moon check --target native --deny-warn
