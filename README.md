@@ -6,6 +6,79 @@ AgentTrace 面向使用 Codex、Claude Code、Copilot CLI 等 AI Coding 工具�
 
 > **这次失败究竟是代码写坏了，还是开发环境出了问题？**
 
+## 为什么 AI Coding 还需要 AgentTrace
+
+Codex、Claude Code 等 AI Coding Agent 已经能够读取报错、运行命令并尝试修复代码。AgentTrace 不重复这些能力，也不试图成为另一个负责“写代码”的 Agent。
+
+两者关注的问题不同：
+
+- **AI Agent 负责推理和修复**：根据已有上下文判断下一步怎么改；
+- **AgentTrace 负责工程现场取证和故障归因**：稳定采集仓库、Worktree、依赖、构建和测试信号，回答“到底坏在哪一层，以及依据是什么”。
+
+AI Agent 很擅长在获得上下文后进行推理，但它每次是否收集到了完整、正确、可比较的工程状态，并没有天然保证。尤其在多个 Agent、多个 Worktree、长时间自动执行或中断恢复的场景中，测试失败可能来自：
+
+- 当前验收目录并不是发生修改的 Worktree；
+- 当前 HEAD 或目标分支与预期不一致；
+- 工作区残留未提交修改；
+- 某个 Worktree 的依赖安装不完整；
+- lockfile 与实际依赖目录不一致；
+- 大量测试失败实际上只是同一个环境根因的重复表现。
+
+AgentTrace 的目标是在 Agent 修改更多代码之前，先提供一份确定性、可复现、可解释的工程诊断结果。
+
+可以把两者的关系理解为：
+
+```text
+Codex / Claude Code / other Agent
+              │
+              │ reasoning / repair
+              ▼
+          AgentTrace
+              │
+      structured evidence
+              ▼
+ Git / Worktree / Env / Build / Test
+```
+
+一句话概括：
+
+> **AI 负责“怎么修”，AgentTrace 负责先判断“哪里坏了、证据是什么、当前工程现场是否可信”。**
+
+### 一个典型场景
+
+例如测试阶段出现：
+
+```text
+27 test files failed
+155 tests failed
+Invalid Chai property: toBeInTheDocument
+```
+
+仅根据错误文本，Agent 可能直接修改测试代码、配置或回滚最近改动。
+
+AgentTrace 则会把多个工程信号关联起来：
+
+```text
+Build
+  TypeScript: PASS
+
+Tests
+  27 files failed
+  155 cases failed
+  repeated signature: missing matcher
+
+Environment
+  dependency state: inconsistent
+
+Diagnosis
+  dependency_environment_error
+  confidence: high
+```
+
+此时建议优先验证依赖环境，而不是先修改或回滚源码。
+
+在多 Agent 开发中也是同样的逻辑：AgentTrace 不负责调度多个 Agent，而是帮助确认当前 Branch、HEAD、Worktree、dirty files、依赖和测试状态是否与预期一致，减少因为错误归因造成的无效修复。
+
 ## 项目状态
 
 当前处于 **MVP 设计与实现阶段**。仓库中的功能说明以“计划 / 目标”为主，未标记为已完成的能力均不代表当前已经实现。
