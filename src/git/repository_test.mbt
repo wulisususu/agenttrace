@@ -47,6 +47,7 @@ test "parse worktree porcelain with Windows paths and CRLF" {
 
 ///|
 async test "collect the current checkout as a real repository" {
+  @async.pause()
   let snapshot = @git.collect_repository(".")
 
   assert_true(snapshot.root != "")

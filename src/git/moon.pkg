@@ -1,4 +1,7 @@
 import {
-  "moonbitlang/async",
   "moonbitlang/async/process" @process,
 }
+
+import {
+  "moonbitlang/async" @async,
+} for "test"
