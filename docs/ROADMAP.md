@@ -141,6 +141,23 @@ Git / Worktree / Env / Build / Test
 
 WASM 作为后续优化项：只有当浏览器内复用 MoonBit 解析/诊断核心能明显提升体验时再引入，不作为 Visual Report 的前置条件。
 
+### Interactive Incident Lab
+
+目标：把 AgentTrace 的价值从“看报告”升级到“亲自体验错误归因的代价”。
+
+当前 M22 纵向切片：
+
+- [x] 第一关使用真实 R001 fixture；
+- [x] 模拟 Builder / Validator / Fixer 三个 Agent；
+- [x] 用户可自由输入下一条 AI 指令；
+- [x] 本地透明 Intent 分类，不用模型决定关卡真相；
+- [x] 支持无效修复、提示、AgentTrace 救场、可编辑 handoff prompt、重新验收与结算；
+- [x] AgentTrace 救场读取真实 CLI 生成的 R001 JSON；
+- [ ] 接入可选 LLM Intent Parser；
+- [ ] 增加 R004 多 Agent / Worktree 关卡；
+- [ ] 增加 R002 源码编译关卡；
+- [ ] 评估轻量 3D 指挥中心外壳。
+
 ### Optional AI Explainer
 
 基于结构化 DiagnosisResult 生成自然语言解释。

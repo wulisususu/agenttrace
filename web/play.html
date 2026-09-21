@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="AgentTrace 互动演示：扮演 Tech Lead，指挥三个 AI Agent 处理真实工程故障。" />
+  <title>AgentTrace Incident Lab｜互动开发事故模拟</title>
+  <link rel="stylesheet" href="./game.css" />
+</head>
+<body>
+  <div class="game-shell">
+    <header class="game-topbar">
+      <a class="brand" href="./">
+        <span class="brand-mark">AT</span>
+        <span>
+          <strong>AgentTrace Incident Lab</strong>
+          <small>互动开发事故模拟 · 第一关</small>
+        </span>
+      </a>
+      <div class="top-actions">
+        <span class="status-pill"><span class="live-dot"></span>真实 R001 诊断数据</span>
+        <a href="./" class="ghost-link">返回报告页</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="mission-panel">
+        <div>
+          <p class="eyebrow">你的身份：Tech Lead</p>
+          <h1>三个 AI Agent 正在开发，<br />测试突然全部变红。</h1>
+          <p class="mission-copy">
+            你可以像真实 AI Coding 一样直接输入指令，也可以随时调用 AgentTrace。
+            目标不是“猜答案”，而是用尽量少的无效操作找到真正的故障层级。
+          </p>
+        </div>
+        <div class="scoreboard">
+          <div><span>回合</span><strong id="turn-count">0</strong></div>
+          <div><span>无效操作</span><strong id="waste-count">0</strong></div>
+          <div><span>提示</span><strong id="hint-count">0</strong></div>
+        </div>
+      </section>
+
+      <section class="agents-grid" aria-label="AI Agent 状态">
+        <article class="agent-card" id="agent-builder">
+          <div class="agent-head">
+            <span class="agent-orb builder"></span>
+            <div>
+              <small>Agent A · Builder</small>
+              <strong>功能开发</strong>
+            </div>
+            <span class="agent-state" data-agent-state="builder">完成</span>
+          </div>
+          <p id="agent-builder-message">Settings 页面已实现，仅修改 3 个源码文件。</p>
+        </article>
+
+        <article class="agent-card alert" id="agent-validator">
+          <div class="agent-head">
+            <span class="agent-orb validator"></span>
+            <div>
+              <small>Agent B · Validator</small>
+              <strong>测试验收</strong>
+            </div>
+            <span class="agent-state danger" data-agent-state="validator">失败</span>
+          </div>
+          <p id="agent-validator-message">27 个测试文件失败，155 个测试失败。</p>
+        </article>
+
+        <article class="agent-card" id="agent-fixer">
+          <div class="agent-head">
+            <span class="agent-orb fixer"></span>
+            <div>
+              <small>Agent C · Fixer</small>
+              <strong>等待你的指令</strong>
+            </div>
+            <span class="agent-state" data-agent-state="fixer">等待</span>
+          </div>
+          <p id="agent-fixer-message">“告诉我下一步该改什么。”</p>
+        </article>
+      </section>
+
+      <section class="incident-layout">
+        <article class="incident-console panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">事故现场</p>
+              <h2>你准备给 Agent C 什么指令？</h2>
+            </div>
+            <span class="incident-badge">测试阶段</span>
+          </div>
+
+          <div class="terminal" aria-label="测试错误摘要">
+            <div><span class="terminal-key">BUILD</span><strong class="ok">PASS</strong></div>
+            <div><span class="terminal-key">TEST FILES</span><strong class="bad">27 FAILED</strong></div>
+            <div><span class="terminal-key">TESTS</span><strong class="bad">155 FAILED</strong></div>
+            <div class="terminal-error">Error: Invalid Chai property: toBeInTheDocument</div>
+          </div>
+
+          <form id="command-form" class="command-form">
+            <label for="command-input">输入你真正会发给 AI 的话</label>
+            <textarea id="command-input" rows="4" placeholder="例如：先检查最近改的测试代码，把报错修掉……"></textarea>
+            <div class="command-actions">
+              <button type="button" class="secondary-button" id="hint-button">给我一点提示</button>
+              <button type="submit" class="primary-button" id="send-button">发送给 Agent C</button>
+            </div>
+          </form>
+
+          <div class="quick-actions">
+            <span>或者：</span>
+            <button type="button" id="trace-button" class="trace-button">
+              <span class="trace-icon">AT</span>
+              先调用 AgentTrace
+            </button>
+          </div>
+
+          <p class="prototype-note">
+            当前原型使用透明的本地意图分类器理解你的输入，不会把模型猜测当成“正确答案”。关卡真相和 AgentTrace 诊断结果都是固定、可复现的。
+          </p>
+        </article>
+
+        <aside class="timeline-panel panel">
+          <div class="panel-head compact">
+            <div>
+              <p class="eyebrow">开发记录</p>
+              <h2>事故时间线</h2>
+            </div>
+          </div>
+          <ol id="timeline" class="timeline" aria-live="polite"></ol>
+        </aside>
+      </section>
+
+      <section id="trace-result" class="trace-result panel" hidden>
+        <div class="trace-header">
+          <div class="trace-logo">AT</div>
+          <div>
+            <p class="eyebrow">AgentTrace 已完成诊断</p>
+            <h2>先别继续改代码。</h2>
+            <p>编译正常，但大量测试以相同方式失败。现有证据更支持先检查测试依赖 / 测试环境。</p>
+          </div>
+          <div class="trace-rule">
+            <span>规则</span>
+            <strong id="trace-rule-id">R001</strong>
+          </div>
+        </div>
+
+        <div class="trace-evidence-grid">
+          <div>
+            <span>编译</span>
+            <strong id="trace-build">通过</strong>
+          </div>
+          <div>
+            <span>失败测试文件</span>
+            <strong id="trace-suites">27</strong>
+          </div>
+          <div>
+            <span>失败测试</span>
+            <strong id="trace-tests">155</strong>
+          </div>
+          <div>
+            <span>置信度</span>
+            <strong id="trace-confidence">高</strong>
+          </div>
+        </div>
+
+        <div class="handoff">
+          <div class="handoff-head">
+            <div>
+              <p class="eyebrow">已生成下一条 AI 指令</p>
+              <h3>把诊断结果直接交给 Agent C</h3>
+            </div>
+            <span>可编辑</span>
+          </div>
+          <textarea id="handoff-prompt" rows="8"></textarea>
+          <div class="handoff-actions">
+            <button type="button" class="secondary-button" id="copy-prompt-button">复制指令</button>
+            <button type="button" class="primary-button" id="execute-handoff-button">发送给 Agent C</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="manual-root-cause" class="manual-root panel" hidden>
+        <p class="eyebrow">你已经接近根因</p>
+        <h2>你主动把排查方向放到了环境 / 依赖。</h2>
+        <p>
+          这是正确方向。你可以继续凭经验手动修复，也可以调用 AgentTrace，
+          用结构化证据确认判断并生成可直接发送给 Agent 的下一步指令。
+        </p>
+        <div class="manual-actions">
+          <button type="button" class="secondary-button" id="manual-fix-button">直接修复环境</button>
+          <button type="button" class="trace-button" id="manual-trace-button"><span class="trace-icon">AT</span>用 AgentTrace 确认</button>
+        </div>
+      </section>
+
+      <section id="result-panel" class="result-panel panel" hidden>
+        <p class="eyebrow">事故处理完成</p>
+        <h2>Bug 已解决。</h2>
+        <p id="result-summary" class="result-summary"></p>
+
+        <div class="result-grid">
+          <div>
+            <span>真正的问题</span>
+            <strong>测试依赖 / 环境异常</strong>
+          </div>
+          <div>
+            <span>你的无效操作</span>
+            <strong id="result-waste">0 次</strong>
+          </div>
+          <div>
+            <span>是否调用 AgentTrace</span>
+            <strong id="result-trace">是</strong>
+          </div>
+          <div>
+            <span>总回合</span>
+            <strong id="result-turns">0</strong>
+          </div>
+        </div>
+
+        <div class="result-path">
+          <h3>你的排查路径</h3>
+          <div id="result-path"></div>
+        </div>
+
+        <div class="result-actions">
+          <button type="button" class="primary-button" id="restart-button">重新体验这一关</button>
+          <a class="secondary-link" href="./?case=dependency">查看真实 R001 技术报告</a>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="./play.js"></script>
+</body>
+</html>

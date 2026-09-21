@@ -239,6 +239,8 @@ moon run cmd/main inspect . \
 
 当前状态：**三案例 Visual Reporter + 真实数据生成链 + GitHub Pages Live Demo 均已实现。** 公开地址：https://wulisususu.github.io/agenttrace/
 
+另外，`web/play.html` 已开始加入 **Incident Lab 互动演示**。第一关让用户扮演 Tech Lead，给 3 个模拟 AI Agent 下指令，在 R001“测试全红但源码未必有问题”的真实故障上体验“盲目修复 vs 先诊断再交接”的差别。第一版使用透明本地 Intent 分类器，不把模型猜测当成故障真相。
+
 ## 默认报告脱敏
 
 Reporter 默认对常见用户 Home 路径做最小化脱敏：
