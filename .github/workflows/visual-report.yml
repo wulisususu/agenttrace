@@ -49,13 +49,17 @@ jobs:
           dependency_code=$?
           branch_case="$(moon run cmd/main inspect . --expected-branch __agenttrace_expected_branch__ --format json)"
           branch_code=$?
+          compile_case="$(moon run cmd/main inspect . --build-log fixtures/logs/tsc-type-error.txt --build-exit-code 2 --format json)"
+          compile_code=$?
           set -e
 
           test "$dependency_code" -eq 1
           test "$branch_code" -eq 1
+          test "$compile_code" -eq 1
 
           printf '%s\n' "$dependency_case" > web/data/dependency-environment.json
           printf '%s\n' "$branch_case" > web/data/unexpected-branch.json
+          printf '%s\n' "$compile_case" > web/data/source-compile-error.json
 
       - name: Validate Visual Report data contracts
         shell: bash
@@ -93,6 +97,23 @@ jobs:
           assert d2["rule_ids"] == ["R004"]
           assert any(e["kind"] == "branch_mismatch" for e in d2["evidence"])
           assert len(d2["suggested_checks"]) >= 1
+
+          compile_error = json.loads(
+              Path("web/data/source-compile-error.json").read_text(encoding="utf-8")
+          )
+          assert compile_error["schema_version"] == "0.1"
+          assert compile_error["build"]["status"] == "fail"
+          assert compile_error["build"]["exit_code"] == 2
+          assert len(compile_error["build"]["errors"]) >= 1
+          assert compile_error["build"]["errors"][0]["code"] == "TS2322"
+          assert compile_error["tests"] is None
+          d3 = compile_error["diagnoses"][0]
+          assert d3["category"] == "build_compile_error"
+          assert d3["severity"] == "error"
+          assert d3["confidence"] == "high"
+          assert d3["rule_ids"] == ["R002"]
+          assert any(e["kind"] == "source_location" for e in d3["evidence"])
+          assert len(d3["suggested_checks"]) >= 1
           PY
 
       - name: Smoke test static bundle over HTTP
@@ -106,8 +127,10 @@ jobs:
           curl --fail --silent http://127.0.0.1:4173/ | grep -Fq "AgentTrace Visual Report"
           curl --fail --silent http://127.0.0.1:4173/app.js | grep -Fq "dependency-environment.json"
           curl --fail --silent http://127.0.0.1:4173/app.js | grep -Fq "unexpected-branch.json"
+          curl --fail --silent http://127.0.0.1:4173/app.js | grep -Fq "source-compile-error.json"
           curl --fail --silent http://127.0.0.1:4173/data/dependency-environment.json | grep -Fq '"rule_ids":["R001"]'
           curl --fail --silent http://127.0.0.1:4173/data/unexpected-branch.json | grep -Fq '"rule_ids":["R004"]'
+          curl --fail --silent http://127.0.0.1:4173/data/source-compile-error.json | grep -Fq '"rule_ids":["R002"]'
 
       - name: Upload generated static report
         uses: actions/upload-artifact@v4
