@@ -69,7 +69,7 @@ fn diagnoses_to_json(diagnoses : Array[@diagnosis.Diagnosis]) -> Json {
 pub fn render_report_json(report : DiagnosticReport) -> String {
   let tests : Json = match report.tests {
     Some(observation) => tests_to_json(observation)
-    None => Null
+    None => null
   }
   let value : Json = {
     "schema_version": "0.1",
