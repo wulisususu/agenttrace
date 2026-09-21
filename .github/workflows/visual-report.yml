@@ -27,6 +27,8 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -88,9 +90,32 @@ jobs:
           curl --fail --silent http://127.0.0.1:4173/app.js | grep -Fq "dependency-environment.json"
           curl --fail --silent http://127.0.0.1:4173/data/dependency-environment.json | grep -Fq '"rule_ids":["R001"]'
 
-      - name: Upload generated static report
+      - name: Upload downloadable Visual Report artifact
         uses: actions/upload-artifact@v4
         with:
           name: agenttrace-visual-report
           path: web/
           if-no-files-found: error
+
+      - name: Package GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: web/
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Deploy Visual Report to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
