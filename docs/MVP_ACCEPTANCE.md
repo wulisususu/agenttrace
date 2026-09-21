@@ -10,16 +10,16 @@
 - [x] 项目范围
 - [x] 架构文档
 - [x] 开发规范
-- [ ] MoonBit 模块初始化
-- [ ] 基础 CI
+- [x] MoonBit 模块初始化
+- [x] 基础 CI
 
 ## B. MoonBit
 
-- [ ] 主要实现代码使用 MoonBit
-- [ ] 使用当前 `moon.mod` / `moon.pkg` 配置
-- [ ] `moon check` 通过
-- [ ] `moon test` 通过
-- [ ] Native build 通过
+- [x] 主要实现代码使用 MoonBit
+- [x] 使用当前 `moon.mod` / `moon.pkg` 配置
+- [x] `moon check` 通过
+- [x] `moon test` 通过
+- [x] Native build 通过
 
 ## C. 核心模型
 

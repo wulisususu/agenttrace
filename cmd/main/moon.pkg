@@ -1,0 +1,5 @@
+import {
+  "wulisususu/agenttrace" @app,
+}
+
+pkgtype(kind: "executable")
