@@ -205,49 +205,104 @@ DiagnosisResult
 
 LLM 只能解释已有证据或提出额外检查建议，不能静默覆盖确定性诊断结果。
 
-## 8. Native 与 Web/WASM 双入口
+## 8. Reporter 架构与 Visual Report
 
 MVP 首选 Native CLI，以便直接访问本地 Git、文件系统、Worktree、进程和测试输出。Native 入口承担真实工程现场扫描，是 AgentTrace 的主要工作形态。
 
-在核心诊断模型稳定后，可增加 Web/WASM 入口，用于交互式体验、案例复现和公开 Demo。两种入口共享同一套尽可能纯函数化的诊断核心，但平台边界不同：
+诊断核心只生成结构化 `DiagnosisResult`，不同 Reporter 负责不同消费场景：
 
 ```text
-                    AgentTrace Core
-                       MoonBit
-                          │
-             ┌────────────┴────────────┐
-             │                         │
-          Native                    WASM
-             │                         │
-             ▼                         ▼
-      agenttrace CLI            Web Playground
-      Git / Worktree            fixtures / logs
-      Env / Build / Test        interactive demo
+Git / Worktree / Env / Build / Test
+                 │
+                 ▼
+          Collect + Normalize
+                 │
+                 ▼
+          Diagnosis Engine
+                 │
+                 ▼
+        DiagnosisResult JSON
+          ┌──────┼────────┐
+          │      │        │
+          ▼      ▼        ▼
+        Text    JSON    Visual
+      Reporter Reporter Reporter
+          │      │        │
+       terminal agent/CI  browser
 ```
 
-优先复用：
+### 8.1 Text Reporter
+
+面向终端用户，强调快速阅读和明确建议。
+
+### 8.2 JSON Reporter
+
+作为稳定机器接口，面向：
+
+- Codex / Claude Code 等 Agent；
+- CI；
+- Visual Report；
+- 后续外部工具集成。
+
+Visual Report 不重新实现诊断规则，而应严格消费 JSON Reporter 的输出。
+
+### 8.3 Visual Report
+
+Visual Report 是 AgentTrace 的正式展示型 Reporter，而不是独立产品。
+
+职责：
+
+- 展示 Diagnosis、Severity、Confidence、Rule IDs；
+- 展示 Evidence 与其来源；
+- 将可用的时间信息组织为诊断时间线；
+- 展示 Suggested Action；
+- 标出输入是否来自真实扫描、fixture 或脱敏日志；
+- 为内置 Demo 提供对应 CLI 复现命令。
+
+Visual Report 不负责：
+
+- 在浏览器里完整扫描本地 Git 仓库；
+- 重新计算一套与 CLI 不同的诊断；
+- 为了展示效果伪造概率、Evidence 或时间线事件；
+- 替代 Native CLI 的真实工程诊断。
+
+## 9. 可复现 Live Demo
+
+公开 Live Demo 应建立在仓库内的 fixture 和真实 `DiagnosisResult` 上。推荐流程：
+
+```text
+fixture / sample log
+        │
+        ▼
+agenttrace inspect ... --format json
+        │
+        ▼
+checked-in / generated DiagnosisResult
+        │
+        ▼
+Visual Report
+```
+
+至少覆盖 3–5 个代表性事故：
+
+- 依赖环境异常导致大量测试共享同一错误签名；
+- 在错误 Worktree 中执行验收；
+- HEAD / branch 与预期状态不一致；
+- dirty state 或残留状态干扰验收；
+- 多个弱信号关联后得到高置信度故障归因。
+
+每个网页案例必须能够回到仓库复现。评审者看到的可视化结果，应与对应 CLI 输出保持一致。
+
+## 10. WASM 边界
+
+WASM 是可选增强，而不是 Visual Report 的前置条件。
+
+如果后续需要在浏览器内直接解析脱敏日志或运行纯函数化诊断规则，可复用：
 
 - model；
 - log parser；
 - diagnosis engine；
 - serializer；
-- 与平台无关的规则与 evidence correlation。
+- 与平台无关的 rule / evidence correlation。
 
-平台适配层单独实现：
-
-- Native：文件系统、Git 命令、进程执行、真实环境采集；
-- Web/WASM：浏览器输入、内置 fixture、脱敏日志和演示状态。
-
-## 9. Web Playground 边界
-
-Web Playground 的主要目的不是把 AgentTrace 变成浏览器版 IDE，而是让用户无需安装工具、无需主动制造一个故障仓库，也能快速理解 AgentTrace 如何从输入生成证据和诊断结果。
-
-建议支持：
-
-- 选择预置故障场景；
-- 载入脱敏测试日志或 fixture；
-- 执行 WASM 侧解析和确定性诊断；
-- 展示 Evidence、Diagnosis、Confidence、Suggested Action；
-- 以时间线或结构化面板解释多个工程信号之间的关系。
-
-公开 Demo 应尽量保持静态部署友好，不依赖常驻后端服务。普通浏览器环境下无法等价获得 Native CLI 对本地 Git、Worktree、文件系统和进程的完整访问能力，因此 Web Playground 只作为体验与展示入口，不替代真实仓库诊断。
+文件系统、Git 命令、Worktree 发现、进程执行等能力仍属于 Native 平台适配层。普通浏览器无法等价替代这些能力，因此浏览器入口始终不是完整本地扫描器。
