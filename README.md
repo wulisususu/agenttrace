@@ -103,6 +103,62 @@ Diagnosis
 - **默认最小暴露**：报告不回显原始日志，对常见用户 Home 绝对路径在 Reporter 边界折叠为 `$HOME`。
 - **范围克制**：MVP 不做 IDE、不做完整多 Agent 调度平台、不自动修改用户源码。
 
+## 从零安装与验证
+
+当前 MVP 尚未发布预编译 Release，推荐从源码运行。下面步骤与仓库的 `fresh-install` CI 使用同一工具链和验证命令。
+
+已验证 MoonBit 编译器版本：
+
+```text
+0.10.14+7d59c7ec9
+```
+
+### Linux / macOS
+
+```bash
+curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s "0.10.14+7d59c7ec9"
+export PATH="$HOME/.moon/bin:$PATH"
+
+git clone https://github.com/wulisususu/agenttrace.git
+cd agenttrace
+
+moon update
+moon check --target native --deny-warn
+moon test --target native
+moon build --target native
+
+moon run cmd/main version
+moon run cmd/main inspect . --format json
+```
+
+### Windows PowerShell
+
+```powershell
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+$env:MOONBIT_INSTALL_VERSION = "0.10.14+7d59c7ec9"
+irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
+$env:Path = "$HOME\.moon\bin;$env:Path"
+
+git clone https://github.com/wulisususu/agenttrace.git
+Set-Location agenttrace
+
+moon update
+moon check --target native --deny-warn
+moon test --target native
+moon build --target native
+
+moon run cmd/main version
+moon run cmd/main inspect . --format json
+```
+
+成功时，`version` 应输出：
+
+```text
+AgentTrace 0.1.0-dev
+```
+
+`inspect . --format json` 应返回可解析的 `schema_version: 0.1` JSON。GitHub Actions 还会在全新目录重新 clone 当前提交，并按上述核心步骤验证 Linux 与 Windows 的源码安装路径。
+
 ## 当前 CLI
 
 目前已实现并由 Linux / Windows CI 验证：
