@@ -1,0 +1,3 @@
+import {
+  "wulisususu/agenttrace/src/testlog" @testlog,
+}
