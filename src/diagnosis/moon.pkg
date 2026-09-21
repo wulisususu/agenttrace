@@ -1,6 +1,6 @@
 import {
   "wulisususu/agenttrace/src/buildlog" @buildlog,
-  "wulisususu/agenttrace/src/core" @core,
+  "wulisususu/agenttrace/core" @core,
   "wulisususu/agenttrace/src/environment" @environment,
   "wulisususu/agenttrace/src/git" @git,
   "wulisususu/agenttrace/src/testlog" @testlog,
