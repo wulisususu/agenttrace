@@ -58,6 +58,48 @@ test "validation rejects empty evidence kind" {
 }
 
 ///|
+test "validation rejects required and forbidden contradiction" {
+  let rule : @core.PolicyRule = {
+    id: "CFG002",
+    category: "configuration_error",
+    severity: "error",
+    confidence: "high",
+    priority: 1,
+    condition: {
+      all_of: ["config_loaded"],
+      any_of: [],
+      none_of: ["config_loaded"],
+    },
+    suggested_checks: [],
+  }
+
+  let issues = @core.validate_policy_rule(rule)
+  assert_eq(issues.length(), 1)
+  assert_true(issues[0].message.contains("required and forbidden"))
+}
+
+///|
+test "validation rejects any_of when every alternative is forbidden" {
+  let rule : @core.PolicyRule = {
+    id: "NET001",
+    category: "network_error",
+    severity: "warning",
+    confidence: "medium",
+    priority: 1,
+    condition: {
+      all_of: [],
+      any_of: ["timeout", "connection_refused"],
+      none_of: ["timeout", "connection_refused"],
+    },
+    suggested_checks: [],
+  }
+
+  let issues = @core.validate_policy_rule(rule)
+  assert_eq(issues.length(), 1)
+  assert_true(issues[0].message.contains("every any_of alternative"))
+}
+
+///|
 test "rule set validation reports duplicate ids" {
   let first = valid_rule()
   let second = valid_rule()
